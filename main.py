@@ -1,15 +1,15 @@
 """Generating informative png pictures of measurements stored in an InfluxDB"""
-from datetime import datetime, timezone, timedelta
-from logging import Logger
+from datetime import datetime, timedelta
+import logging
 import matplotlib.pyplot as plt
 from helpers import get_latest_value
 from influx import GetFromInflux
 
-logger = Logger("influx_report.main")
+logger = logging.Logger("influx_report.main")
 
 
 def print_to_png(timestamps, values):
-    """Linienchart erstellen"""
+    """create line graph png"""
     plt.plot(timestamps, values)
     plt.xlabel('Zeit')
     plt.ylabel('Werte')
@@ -22,13 +22,12 @@ def main():
     """Main entry point"""
     influx = GetFromInflux()
     timestamps, values = influx.get_values_from_influx(
-        measurement="SmartMeter_Haushalt_Bezug",
-        start_date=datetime(2023, 7, 15, tzinfo=timezone.utc),
-        end_date=datetime(2023, 7, 15, tzinfo=timezone.utc) + timedelta(hours=23, minutes=59, seconds=59),
-        influx=influx,
+        measurement_name="SmartMeter_Haushalt_Bezug",
+        start_date=datetime.now() - timedelta(days=14),
+        end_date=datetime.now(),
     )
     timestamp, value = get_latest_value(timestamps, values)
-    print(f"Last: {timestamp} - {value}")
+    logger.debug("Last: %s - %s", timestamp, value)
     print_to_png(timestamps, values)
 
 

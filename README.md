@@ -2,6 +2,7 @@
 
 Read and plot data from influxdb to a png. Currently I am more interested in the tooling than the actual code itself:
 
+- python 3.10
 - pylint
 - yapf
 - GitHub Actions

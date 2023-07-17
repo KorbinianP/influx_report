@@ -23,7 +23,7 @@ class GetFromInflux():
     """Get data from InfluxDB"""
 
     def __init__(self):
-        # read config.ini
+        """Parse config.ini and create the influx client"""
         config = configparser.ConfigParser()
         config.read('config.ini')
 
@@ -38,20 +38,28 @@ class GetFromInflux():
 
     def get_values_from_influx(
         self,
-        measurement: str,
+        measurement_name: str,
         start_date: datetime,
         end_date: datetime,
-        influx: InfluxConfigClass,
     ):
-        """Get Values of a certain timespan from InfluxDB"""
-        query = f"""from(bucket:"{influx.bucket}")
+        """Get Values of a certain timespan from InfluxDB
+
+        Args:
+            measurement_name (str): name of the measurement stored in influx
+            start_date (datetime): date when to start the query
+            end_date (datetime): date when to end the query
+
+        Returns:
+            tuple of timestamps (list[datetime]) and values (list())
+        """
+
+        query = f"""from(bucket:"{self.influx.bucket}")
         |> range(start: {start_date.strftime('%Y-%m-%dT%H:%M:%S.%fZ')}, stop: {end_date.strftime('%Y-%m-%dT%H:%M:%S.%fZ')})
-        |> filter(fn: (r) => r._measurement == "{measurement}")"""
+        |> filter(fn: (r) => r._measurement == "{measurement_name}")"""
 
-        result = influx.client.query_api().query(org=influx.org, query=query)
+        result = self.influx.client.query_api().query(org=self.influx.org, query=query)
 
-        # Liste zum Speichern der Zeitstempel und Werte
-        timestamps = []
+        timestamps: list(datetime) = []
         values = []
 
         for table in result:
@@ -60,14 +68,13 @@ class GetFromInflux():
                     time = str(record.get_time())
                     value = record.get_value()
 
-                    # Zeitstempel in ein datetime-Objekt konvertieren
+                    # Convert timestamps to datetime
                     timestamp = datetime.fromisoformat(time)
                     timestamps.append(timestamp)
                     values.append(value)
                 except KeyError as exception:
                     logger.error(exception)
 
-        # Zeit normalisieren
         timestamps.reverse()
         values.reverse()
-        return timestamps, values
+        return (timestamps, values)
