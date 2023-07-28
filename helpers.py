@@ -1,16 +1,17 @@
 """Collection of some small helper functions"""
 from logging import Logger
 from datetime import datetime
+from typing import List  # until Python 3.8 you can't use list[] but must use typing.List[]
 
 logger = Logger("influx_report.helpers")
 
 
-def get_latest_value(timestamps: list[datetime], values: list):
+def get_latest_value(timestamps: List[datetime], values: list):
     """Scan through a list of timestamps and get the latest date.
     Return the date and the value in the same position
 
     Args:
-        timestamps (list): timestamps in an ordered list
+        timestamps (typing.List[datetime]): timestamps in an ordered list
         values (list): values in a list, pos n corresponds to pos n of timestamps
 
     Returns:
