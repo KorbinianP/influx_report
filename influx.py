@@ -27,14 +27,20 @@ class GetFromInflux():
         config = configparser.ConfigParser()
         config.read('config.ini')
 
-        self.influx = InfluxConfigClass(
-            url=config.get("InfluxDB", "url"),
-            token=config.get("InfluxDB", "token"),
-            org=config.get("InfluxDB", "org"),
-            bucket=config.get("InfluxDB", "bucket"),
-            # Verbindung zur InfluxDB herstellen
-            client=InfluxDBClient(url=config.get("InfluxDB", "url"), token=config.get("InfluxDB", "token")))
-        logger.debug("Fill connect to InfluxDB %s", self.influx.url)
+        try:
+            self.influx = InfluxConfigClass(
+                url=config.get("InfluxDB", "url"),
+                token=config.get("InfluxDB", "token"),
+                org=config.get("InfluxDB", "org"),
+                bucket=config.get("InfluxDB", "bucket"),
+                # Verbindung zur InfluxDB herstellen
+                client=InfluxDBClient(url=config.get("InfluxDB", "url"), token=config.get("InfluxDB", "token")))
+            logger.debug("Fill connect to InfluxDB %s", self.influx.url)
+        except configparser.NoSectionError as error:
+            logger.error("Not recoverable error: %s", error.message)
+            logger.error("Ensure that file config.ini exists and has a [InfluxDB] section.")
+            logger.error(" See README.md for more details")
+            raise error
 
     def get_values_from_influx(
         self,
