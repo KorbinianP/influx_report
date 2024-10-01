@@ -1,7 +1,7 @@
 """Get data from InfluxDB"""
 from datetime import datetime
 from dataclasses import dataclass
-from logging import Logger
+import logging
 import configparser
 from influxdb_client import InfluxDBClient
 
@@ -16,7 +16,8 @@ class InfluxConfigClass:
     client: InfluxDBClient
 
 
-logger = Logger("influx_report.influx")
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("influx_report.influx")
 
 
 class GetFromInflux():
@@ -56,31 +57,27 @@ class GetFromInflux():
             end_date (datetime): date when to end the query
 
         Returns:
-            tuple of timestamps (list[datetime]) and values (list())
+            tuple of (start_value, end_value)
         """
-
+        logger.debug(f"Get value from {start_date} to {end_date}")
         query = f"""from(bucket:"{self.influx.bucket}")
         |> range(start: {start_date.strftime('%Y-%m-%dT%H:%M:%S.%fZ')}, stop: {end_date.strftime('%Y-%m-%dT%H:%M:%S.%fZ')})
-        |> filter(fn: (r) => r._measurement == "{measurement_name}")"""
+        |> filter(fn: (r) => r._measurement == "{measurement_name}")
+        |> sort(columns: ["_time"], desc: false)"""
 
         result = self.influx.client.query_api().query(org=self.influx.org, query=query)
 
-        timestamps: list(datetime) = []
         values = []
 
         for table in result:
             for record in table.records:
                 try:
-                    time = str(record.get_time())
                     value = record.get_value()
-
-                    # Convert timestamps to datetime
-                    timestamp = datetime.fromisoformat(time)
-                    timestamps.append(timestamp)
                     values.append(value)
                 except KeyError as exception:
                     logger.error(exception)
 
-        timestamps.reverse()
-        values.reverse()
-        return (timestamps, values)
+        if values:
+            return (values[0], values[-1])  # Return the first and last value
+        else:
+            return (None, None)
