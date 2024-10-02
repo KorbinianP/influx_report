@@ -1,65 +1,48 @@
-from datetime import datetime, timedelta
 import logging
+from datetime import datetime
+
 from dateutil.relativedelta import relativedelta
+
+from helpers import (get_same_calendar_week_day_one_year_ago, is_first_of_month, is_sunday)
 from influx import GetFromInflux
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("influx_report.main")
 
 
-def last_sunday(today):
-    # Find the latest Sunday by calculating how many days back it is from today
-    last_sunday = today - timedelta(days=today.weekday() + 1)  # 0 = Monday, ..., 6 = Sunday
-    last_sunday_23 = last_sunday.replace(hour=23, minute=59)
+def process(date, period):
+    """Entry point for processing usage data based on the specified period.
 
-    return last_sunday_23
+    Args:
+        date (datetime): The reference date for calculations.
+        period (str): The period for usage data ('month' or 'week').
 
-
-def get_same_calendar_week_day_one_year_ago(date):
-    # Get the current day of the week (0=Monday, 6=Sunday)
-    current_weekday = date.weekday()
-
-    # Get the current calendar week (ISO calendar week number)
-    current_calendar_week = date.isocalendar()[1]
-
-    # Get the year and set it to one year ago
-    year_one_year_ago = date.year - 1
-
-    # Calculate the same calendar week day one year ago
-    first_day_of_year_one_ago = datetime.strptime(f"{year_one_year_ago}-W{current_calendar_week}-1", "%G-W%V-%u")
-
-    # Get the corresponding day of the same week
-    same_weekday_one_year_ago = first_day_of_year_one_ago + timedelta(days=current_weekday)
-
-    return same_weekday_one_year_ago
-
-
-def main(today, period="month"):
-    """Main entry point with period parameter"""
+    Raises:
+        ValueError: If an invalid period is specified.
+    """
     influx = GetFromInflux()
-    #today = datetime.now()
 
     if period == "month":
         delta = relativedelta(months=1)
-        one_year_ago = today - relativedelta(years=1)
+        one_year_ago = date - relativedelta(years=1)
     elif period == "week":
         delta = relativedelta(weeks=1)
-        one_year_ago = get_same_calendar_week_day_one_year_ago(today)
+        one_year_ago = get_same_calendar_week_day_one_year_ago(date)
     else:
         raise ValueError("Invalid period specified. Use 'month' or 'week'.")
 
     # Get today's usage data for the specified period
     values_today = influx.get_values_from_influx(
         measurement_name="SmartMeter_Haushalt_Bezug",
-        start_date=today - delta,
-        end_date=today,
+        start_date=date - delta,
+        end_date=date,
     )
 
     logger.info(values_today)
 
     # Calculate current year's usage
     this_year_usage = values_today[1] - values_today[0]
-    logger.info(f"Usage {today - delta} to {today}: {this_year_usage} kWh")
+    logger.info(f"Usage {date - delta} to {date}: {this_year_usage} kWh")
 
     # Calculate last year's usage for the same period
     values_last_year = influx.get_values_from_influx(
@@ -75,7 +58,22 @@ def main(today, period="month"):
     logger.info(f"The usage {'increased' if this_year_usage > last_year_usage else 'decreased'} by {abs(this_year_usage - last_year_usage)} kWh")
 
 
+def main():
+    #today = datetime(year=2024, month=10, day=1, hour=10, minute=15)
+    today = datetime.now().replace(hour=23, minute=59, second=59)
+
+    if is_first_of_month(today):
+        logger.info(f"{today.date()} is the first of the month.")
+        process(date=today, period="month")
+    else:
+        logger.info(f"{today.date()} is not the first of the month.")
+
+    if is_sunday(today):
+        logger.info(f"{today.date()} is a Sunday.")
+        process(date=today, period="week")
+    else:
+        logger.info(f"{today.date()} is not a Sunday.")
+
+
 if __name__ == "__main__":
-    today = datetime(year=2024, month=10, day=1, hour=23, minute=59)
-    main(today=today, period="month")
-    main(today=last_sunday(today), period="week")
+    main()
