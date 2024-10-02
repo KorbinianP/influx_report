@@ -6,7 +6,7 @@ from dateutil.relativedelta import relativedelta
 from helpers import (get_same_calendar_week_day_one_year_ago, is_first_of_month, is_sunday)
 from influx import GetFromInflux
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s', datefmt='%d.%m.%y %H:%M:%S')
 logger = logging.getLogger("influx_report.main")
 
 
@@ -59,7 +59,6 @@ def process(date, period):
 
 
 def main():
-    #today = datetime(year=2024, month=10, day=1, hour=10, minute=15)
     today = datetime.now().replace(hour=23, minute=59, second=59)
 
     if is_first_of_month(today):
