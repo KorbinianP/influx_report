@@ -1,6 +1,9 @@
-import pytest
-from unittest.mock import patch
+"""unit test main.py"""
 from datetime import datetime
+from unittest.mock import patch
+
+import pytest
+
 from main import main
 
 
@@ -11,6 +14,7 @@ from main import main
     (datetime(year=2024, month=10, day=7), False, False, None),
 ])
 def test_main(test_date, is_first_of_month, is_sunday, expected_period):
+    """test main function with different combinations"""
     with patch('main.process') as mock_process, \
          patch('main.is_first_of_month', return_value=is_first_of_month), \
          patch('main.is_sunday', return_value=is_sunday), \

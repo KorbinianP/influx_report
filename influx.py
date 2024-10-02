@@ -20,6 +20,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("influx_report.influx")
 
 
+# pylint: disable-next=too-few-public-methods
 class GetFromInflux():
     """Get data from InfluxDB"""
 
@@ -59,7 +60,7 @@ class GetFromInflux():
         Returns:
             tuple of (start_value, end_value)
         """
-        logger.debug(f"Get value from {start_date} to {end_date}")
+        logger.debug("Get value from %s to %s", start_date, end_date)
         query = f"""from(bucket:"{self.influx.bucket}")
         |> range(start: {start_date.strftime('%Y-%m-%dT%H:%M:%S.%fZ')}, stop: {end_date.strftime('%Y-%m-%dT%H:%M:%S.%fZ')})
         |> filter(fn: (r) => r._measurement == "{measurement_name}")
@@ -79,5 +80,4 @@ class GetFromInflux():
 
         if values:
             return (values[0], values[-1])  # Return the first and last value
-        else:
-            return (None, None)
+        return (None, None)

@@ -60,28 +60,33 @@ def test_get_latest_value_more_timestamps():
 
 
 def test_last_sunday_from_weekday():
+    """Get from a date the sunday before"""
     date = datetime(2023, 10, 4)  # Wednesday
     expected = datetime(2023, 10, 1, 23, 59)
     assert last_sunday(date) == expected
 
 
 def test_last_sunday_from_sunday_expect_same():
+    """Get the same date back if it is a sunday"""
     date = datetime(2024, 10, 6)  # Sunday
     expected = datetime(2024, 10, 6, 23, 59)
     assert last_sunday(date) == expected
 
 
 def test_is_first_of_month():
+    """test first of month positive and negative"""
     assert is_first_of_month(datetime(2023, 10, 1))
     assert not is_first_of_month(datetime(2023, 10, 2))
 
 
 def test_is_sunday():
+    """test is sunday positive and negative"""
     assert is_sunday(datetime(2023, 10, 1))  # Sunday
     assert not is_sunday(datetime(2023, 10, 2))  # Monday
 
 
 def test_get_same_calendar_week_day_one_year_ago():
+    """give a day and expect the same weekday one year before, same calendar week"""
     date = datetime(2023, 10, 4)  # Wednesday
     expected = datetime(2022, 10, 5)  # Same weekday one year ago
     assert get_same_calendar_week_day_one_year_ago(date) == expected

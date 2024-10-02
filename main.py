@@ -1,3 +1,9 @@
+"""
+Read from an influxdb for a certain item the values of last month or week,
+depending on if it is the first of the month or sunday.
+Compare it against same timeframe last year.
+Ouput details to console
+"""
 import logging
 from datetime import datetime
 
@@ -38,11 +44,11 @@ def process(date, period):
         end_date=date,
     )
 
-    logger.info(values_today)
+    logger.info("%s", values_today)
 
     # Calculate current year's usage
     this_year_usage = values_today[1] - values_today[0]
-    logger.info(f"Usage {date - delta} to {date}: {this_year_usage} kWh")
+    logger.info("Usage %s to %s: %s kWh", date - delta, date, this_year_usage)
 
     # Calculate last year's usage for the same period
     values_last_year = influx.get_values_from_influx(
@@ -52,26 +58,27 @@ def process(date, period):
     )
 
     last_year_usage = values_last_year[1] - values_last_year[0]
-    logger.info(f"Usage {one_year_ago - delta} to {one_year_ago}: {last_year_usage} kWh")
+    logger.info("Usage %s to %s: %s kWh", one_year_ago - delta, one_year_ago, last_year_usage)
 
     # Log comparison of this year's usage to last year's usage
-    logger.info(f"The usage {'increased' if this_year_usage > last_year_usage else 'decreased'} by {abs(this_year_usage - last_year_usage)} kWh")
+    logger.info("The usage %s by %s kWh", 'increased' if this_year_usage > last_year_usage else 'decreased', abs(this_year_usage - last_year_usage))
 
 
 def main():
+    """main entry point of the module"""
     today = datetime.now().replace(hour=23, minute=59, second=59)
 
     if is_first_of_month(today):
-        logger.info(f"{today.date()} is the first of the month.")
+        logger.info("%s is the first of the month.", today.date())
         process(date=today, period="month")
     else:
-        logger.info(f"{today.date()} is not the first of the month.")
+        logger.info("%s is not the first of the month.", today.date())
 
     if is_sunday(today):
-        logger.info(f"{today.date()} is a Sunday.")
+        logger.info("%s is a Sunday.", today.date())
         process(date=today, period="week")
     else:
-        logger.info(f"{today.date()} is not a Sunday.")
+        logger.info("%s is not a Sunday.", today.date())
 
 
 if __name__ == "__main__":

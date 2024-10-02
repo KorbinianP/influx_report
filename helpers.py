@@ -45,10 +45,10 @@ def last_sunday(date):
         datetime: The last Sunday before the given date, set to 23:59.
     """
     if date.weekday() == 6:
-        last_sunday = date
+        sunday = date
     else:
-        last_sunday = date - timedelta(days=date.weekday() + 1)  # 0 = Monday, ..., 6 = Sunday
-    sunday_end_of_day = last_sunday.replace(hour=23, minute=59)
+        sunday = date - timedelta(days=date.weekday() + 1)  # 0 = Monday, ..., 6 = Sunday
+    sunday_end_of_day = sunday.replace(hour=23, minute=59)
     return sunday_end_of_day
 
 
