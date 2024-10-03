@@ -16,7 +16,6 @@ class InfluxConfigClass:
     client: InfluxDBClient
 
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("influx_report.influx")
 
 
