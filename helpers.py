@@ -1,10 +1,33 @@
 """Collection of some small helper functions"""
 from datetime import datetime, timedelta
-from logging import Logger
+import logging
 from typing import \
     List  # until Python 3.8 you can't use list[] but must use typing.List[]
 
-logger = Logger("influx_report.helpers")
+logger = logging.getLogger("influx_report.helpers")
+
+
+def log_difference(values, timeframes, measurement_name):
+    """
+    Logs the difference in energy usage between two timeframes.
+
+    Parameters:
+        values (list): A list containing two float values representing energy 
+                       usage in kWh for the two timeframes.
+        timeframes (list): A list containing two tuples, each with two datetime objects representing
+                           the start and end dates of the respective timeframes.
+        measurement_name (str): A string representing the name of the measurement being logged.
+
+    The function logs the energy usage for each timeframe, calculates the change in usage,
+    and logs whether the usage has increased or decreased along with the amount of change.
+    """
+    logger.info("-------- %s --------", measurement_name)
+    logger.info("Usage %s to %s: %.1f kWh", timeframes[1][0].strftime("%d.%m.%y"), timeframes[1][1].strftime("%d.%m.%y"), values[1])
+    logger.info("Usage %s to %s: %.1f kWh", timeframes[0][0].strftime("%d.%m.%y"), timeframes[0][1].strftime("%d.%m.%y"), values[0])
+    change = 'increased' if values[1] > values[0] else 'decreased'
+    logger.info("The usage %s by %.1f kWh", change, abs(values[1] - values[0]))
+    # logger.info("----%s----", "-" * (len(measurement_name) + 2))
+    logger.info("")
 
 
 def get_latest_value(timestamps: List[datetime], values: list):

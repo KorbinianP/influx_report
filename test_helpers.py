@@ -4,9 +4,10 @@ Run the tests with coverage and generate HTML report
 coverage run -m pytest test_main.py
 coverage html
 """
-from datetime import datetime, timezone
+import logging
+from datetime import datetime, timedelta, timezone
 
-from helpers import (get_latest_value, get_same_calendar_week_day_one_year_ago, is_first_of_month, is_sunday, last_sunday)
+from helpers import (get_latest_value, get_same_calendar_week_day_one_year_ago, is_first_of_month, is_sunday, last_sunday, log_difference)
 
 
 def test_get_latest_value_empty_lists():
@@ -90,3 +91,18 @@ def test_get_same_calendar_week_day_one_year_ago():
     date = datetime(2023, 10, 4)  # Wednesday
     expected = datetime(2022, 10, 5)  # Same weekday one year ago
     assert get_same_calendar_week_day_one_year_ago(date) == expected
+
+
+def test_log_difference(caplog):
+    """Test the log_difference function"""
+    caplog.set_level(logging.INFO)
+    values = [100.0, 150.0]
+    timeframes = ((datetime.now() - timedelta(days=7), datetime.now() - timedelta(days=1)), (datetime.now(), datetime.now()))
+    measurement_name = "Energy Usage"
+
+    log_difference(values, timeframes, measurement_name)
+
+    assert "-------- Energy Usage --------" in caplog.text
+    assert "Usage" in caplog.text
+    assert "increased" in caplog.text
+    assert "by 50.0 kWh" in caplog.text

@@ -9,35 +9,15 @@ from datetime import datetime
 
 from dateutil.relativedelta import relativedelta
 
-from helpers import (get_same_calendar_week_day_one_year_ago, is_first_of_month, is_sunday)
+from helpers import (get_same_calendar_week_day_one_year_ago, is_first_of_month, is_sunday, log_difference)
 from influx import GetFromInflux
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s', datefmt='%d.%m.%y %H:%M:%S')
+logging.basicConfig(level=logging.INFO, format='%(message)s')
+#logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)s %(message)s', datefmt='%d.%m.%y %H:%M:%S')
 logger = logging.getLogger("influx_report.main")
 
 
-def log_difference(values, timeframes, measurement_name):
-    """
-    Logs the difference in energy usage between two timeframes.
-
-    Args:
-        values (list): A list containing the energy usage values for the previous and current periods.
-        timeframes (tuple): A tuple containing two tuples, each with start and end datetime objects for the periods being compared.
-        measurement_name (str): The name of the measurement being logged.
-
-    Returns:
-        None
-    """
-
-    logger.info("---- %s ----", measurement_name)
-    logger.info("Usage %s to %s: %.1f kWh", timeframes[1][0].strftime("%d.%m.%y"), timeframes[1][1].strftime("%d.%m.%y"), values[1])
-    logger.info("Usage %s to %s: %.1f kWh", timeframes[0][0].strftime("%d.%m.%y"), timeframes[0][1].strftime("%d.%m.%y"), values[0])
-    change = 'increased' if values[1] > values[0] else 'decreased'
-    logger.info("The usage %s by %.1f kWh", change, abs(values[1] - values[0]))
-    logger.info("----%s----", "-" * (len(measurement_name) + 2))
-    logger.info("")
-
-
+#pylint: disable-next=too-many-locals
 def process(date, is_month):
     """
     Processes the energy measurements for a given date, determining whether to use monthly or weekly data.
@@ -51,12 +31,51 @@ def process(date, is_month):
     """
     # Haushalt is in kWh
     haushalt, timeframes = process_measurement(date, is_month, "SmartMeter_Haushalt_Bezug")
-    log_difference(haushalt, timeframes, "Haushalt")
+    log_difference(haushalt, timeframes, "Haushalt Zähler")
+    shelly_hh_ph1, _ = process_measurement(date, is_month, "Test_Shelly_3EM_Haushalt_Ph1_Total")
+    shelly_hh_ph2, _ = process_measurement(date, is_month, "Test_Shelly_3EM_Haushalt_Ph2_Total")
+    shelly_hh_ph3, _ = process_measurement(date, is_month, "Test_Shelly_3EM_Haushalt_Ph3_Total")
+    shelly_hh_total = [
+        round((shelly_hh_ph1[0] + shelly_hh_ph2[0] + shelly_hh_ph3[0]) / 1000, 1),
+        round((shelly_hh_ph1[1] + shelly_hh_ph2[1] + shelly_hh_ph3[1]), 1),
+    ]
+    log_difference(shelly_hh_total, timeframes, "Haushalt absolut")
+
     # Heizung is in Wh, and Heizung also counts Haushalt (Kaskadenschaltung)
     heizung, _ = process_measurement(date, is_month, "SmartMeter_HeizungNeu_Bezug")
     heizung[0] = round(heizung[0] / 1000, 1) - haushalt[0]
     heizung[1] = round(heizung[1] / 1000, 1) - haushalt[1]
     log_difference(heizung, timeframes, "Heizung")
+    shelly_hei_ph1, _ = process_measurement(date, is_month, "Test_Shelly_3EM_Heizung_Ph1_Total")
+    shelly_hei_ph2, _ = process_measurement(date, is_month, "Test_Shelly_3EM_Heizung_Ph2_Total")
+    shelly_hei_ph3, _ = process_measurement(date, is_month, "Test_Shelly_3EM_Heizung_Ph3_Total")
+    shelly_hh_total = [
+        round((shelly_hei_ph1[0] + shelly_hei_ph2[0] + shelly_hei_ph3[0]) / 1000, 1),
+        round((shelly_hei_ph1[1] + shelly_hei_ph2[1] + shelly_hei_ph3[1]) / 1000, 1),
+    ]
+    log_difference(shelly_hh_total, timeframes, "Heizung absolut")
+
+    ceran, _ = process_measurement(date, is_month, "Zaehler_Ceran")
+    log_difference(ceran, timeframes, "Kochfeld")
+
+    mikrowelle, _ = process_measurement(date, is_month, "Zaehler_Mikrowelle")
+    log_difference(mikrowelle, timeframes, "Mikrowelle")
+
+    netzwerk, _ = process_measurement(date, is_month, "Zaehler_Netzwerkschrank")
+    log_difference(netzwerk, timeframes, "Netzwerkschrank")
+
+    spueli, _ = process_measurement(date, is_month, "Zaehler_Spuelmaschine")
+    log_difference(spueli, timeframes, "Spülmaschine")
+
+    wasser, _ = process_measurement(date, is_month, "Zaehler_Wasser")
+    log_difference(wasser, timeframes, "Wasser")
+
+    gartenwasser, _ = process_measurement(date, is_month, "Zaehler_Wasser_Garten")
+    log_difference(gartenwasser, timeframes, "Wasser Garten")
+
+    # backofen, _ = process_measurement(date, is_month, "Zaehler_Backofen")
+    # log_difference(backofen, timeframes, "Heizung")
+    #"" or r["item"] == "" or r["item"] == ""
 
 
 def process_measurement(date, is_month, measurement_name):
