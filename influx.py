@@ -43,7 +43,7 @@ class GetFromInflux():
             logger.error(" See README.md for more details")
             raise error
 
-    def get_values_from_influx(
+    def get_values_from_influx_full_timespan(
         self,
         measurement_name: str,
         start_date: datetime,
@@ -80,3 +80,66 @@ class GetFromInflux():
         if values:
             return (values[0], values[-1])  # Return the first and last value
         return (None, None)
+
+    def get_values_from_influx(
+        self,
+        measurement_name: str,
+        start_date: datetime,
+        end_date: datetime,
+    ):
+        """
+        Retrieves the last recorded values from InfluxDB for a specified measurement 
+        over two distinct timeframes: the entire day of the start date and the entire 
+        day of the end date.
+
+        Args:
+            measurement_name (str): The name of the measurement stored in InfluxDB.
+            start_date (datetime): The date for the start of the query, used to define 
+                                the range from 00:00:00 to 23:59:59 of that day.
+            end_date (datetime): The date for the end of the query, used to define 
+                                the range from 00:00:00 to 23:59:00 of that day.
+
+        Returns:
+            tuple: A tuple containing the last value recorded for the start date and 
+                the last value recorded for the end date. If no values are found, 
+                None is returned for that timeframe.
+        """
+        logger.debug("Get value from %s to %s", start_date, end_date)
+        # Query for start_date from 00:00:00 to 23:59:59
+        query_start = f"""from(bucket:"{self.influx.bucket}")
+        |> range(start: {start_date.strftime('%Y-%m-%dT00:00:00Z')}, stop: {start_date.strftime('%Y-%m-%dT23:59:59Z')})
+        |> filter(fn: (r) => r._measurement == "{measurement_name}")
+        |> sort(columns: ["_time"], desc: false)"""
+
+        result_start = self.influx.client.query_api().query(org=self.influx.org, query=query_start)
+
+        values_start = []
+
+        for table in result_start:
+            for record in table.records:
+                try:
+                    value = record.get_value()
+                    values_start.append(value)
+                except KeyError as exception:
+                    logger.error(exception)
+
+        # Query for end_date from 00:00:00 to 23:59:00
+        query_end = f"""from(bucket:"{self.influx.bucket}")
+        |> range(start: {end_date.strftime('%Y-%m-%dT00:00:00Z')}, stop: {end_date.strftime('%Y-%m-%dT23:59:59Z')})
+        |> filter(fn: (r) => r._measurement == "{measurement_name}")
+        |> sort(columns: ["_time"], desc: false)"""
+
+        result_end = self.influx.client.query_api().query(org=self.influx.org, query=query_end)
+
+        values_end = []
+
+        for table in result_end:
+            for record in table.records:
+                try:
+                    value = record.get_value()
+                    values_end.append(value)
+                except KeyError as exception:
+                    logger.error(exception)
+
+        # Return the last value from both queries
+        return (values_start[-1] if values_start else None, values_end[-1] if values_end else None)

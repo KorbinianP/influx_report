@@ -17,7 +17,23 @@ logging.basicConfig(level=logging.INFO, format='%(message)s')
 logger = logging.getLogger("influx_report.main")
 
 
-#pylint: disable-next=too-many-locals
+def process_and_log(date, is_month, measurement, name):
+    """
+    Processes the specified measurement for a given date, determining values and 
+    timeframes, and logs the differences.
+
+    Args:
+        date (datetime): The date for which the measurement is processed.
+        is_month (bool): A flag indicating whether the measurement is for a month.
+        measurement (str): The name of the measurement to be processed.
+
+    Returns:
+        None
+    """
+    values, timeframes = process_measurement(date, is_month, measurement)
+    log_difference(values, timeframes, name)
+
+
 def process(date, is_month):
     """
     Processes the energy measurements for a given date, determining whether to use monthly or weekly data.
@@ -37,7 +53,7 @@ def process(date, is_month):
     shelly_hh_ph3, _ = process_measurement(date, is_month, "Test_Shelly_3EM_Haushalt_Ph3_Total")
     shelly_hh_total = [
         round((shelly_hh_ph1[0] + shelly_hh_ph2[0] + shelly_hh_ph3[0]) / 1000, 1),
-        round((shelly_hh_ph1[1] + shelly_hh_ph2[1] + shelly_hh_ph3[1]), 1),
+        round((shelly_hh_ph1[1] + shelly_hh_ph2[1] + shelly_hh_ph3[1]) / 1000, 1),
     ]
     log_difference(shelly_hh_total, timeframes, "Haushalt absolut")
 
@@ -55,27 +71,17 @@ def process(date, is_month):
     ]
     log_difference(shelly_hh_total, timeframes, "Heizung absolut")
 
-    ceran, _ = process_measurement(date, is_month, "Zaehler_Ceran")
-    log_difference(ceran, timeframes, "Kochfeld")
-
-    mikrowelle, _ = process_measurement(date, is_month, "Zaehler_Mikrowelle")
-    log_difference(mikrowelle, timeframes, "Mikrowelle")
-
-    netzwerk, _ = process_measurement(date, is_month, "Zaehler_Netzwerkschrank")
-    log_difference(netzwerk, timeframes, "Netzwerkschrank")
-
-    spueli, _ = process_measurement(date, is_month, "Zaehler_Spuelmaschine")
-    log_difference(spueli, timeframes, "Spülmaschine")
-
-    wasser, _ = process_measurement(date, is_month, "Zaehler_Wasser")
-    log_difference(wasser, timeframes, "Wasser")
-
-    gartenwasser, _ = process_measurement(date, is_month, "Zaehler_Wasser_Garten")
-    log_difference(gartenwasser, timeframes, "Wasser Garten")
-
-    # backofen, _ = process_measurement(date, is_month, "Zaehler_Backofen")
-    # log_difference(backofen, timeframes, "Heizung")
-    #"" or r["item"] == "" or r["item"] == ""
+    just_log_measurements = [
+        ("Zaehler_Ceran", "Kochfeld"),
+        ("Zaehler_Mikrowelle", "Mikrowelle"),
+        ("Zaehler_Netzwerkschrank", "Netzwerkschrank"),
+        ("Zaehler_Spuelmaschine", "Spülmaschine"),
+        ("Zaehler_Wasser", "Wasser"),
+        ("Zaehler_Wasser_Garten", "Wasser Garten"),
+        #("Zaehler_Backofen","Heizung"),
+    ]
+    for measurement in just_log_measurements:
+        process_and_log(date, is_month, measurement[0], measurement[1])
 
 
 def process_measurement(date, is_month, measurement_name):
