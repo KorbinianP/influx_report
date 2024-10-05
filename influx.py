@@ -43,13 +43,13 @@ class GetFromInflux():
             logger.error(" See README.md for more details")
             raise error
 
-    def get_values_from_influx_full_timespan(
+    def get_total_kwh_consumed_from_influx(
         self,
         measurement_name: str,
         start_date: datetime,
         end_date: datetime,
     ):
-        """Get Values of a certain timespan from InfluxDB
+        """Calculate kWh consumed over a certain timespan from InfluxDB
 
         Args:
             measurement_name (str): name of the measurement stored in influx
@@ -57,9 +57,9 @@ class GetFromInflux():
             end_date (datetime): date when to end the query
 
         Returns:
-            tuple of (start_value, end_value)
+            float: total kWh consumed during the timespan
         """
-        logger.debug("Get value from %s to %s", start_date, end_date)
+        logger.debug("Get kWh from %s to %s", start_date, end_date)
         query = f"""from(bucket:"{self.influx.bucket}")
         |> range(start: {start_date.strftime('%Y-%m-%dT%H:%M:%S.%fZ')}, stop: {end_date.strftime('%Y-%m-%dT%H:%M:%S.%fZ')})
         |> filter(fn: (r) => r._measurement == "{measurement_name}")
@@ -68,18 +68,27 @@ class GetFromInflux():
         result = self.influx.client.query_api().query(org=self.influx.org, query=query)
 
         values = []
+        timestamps = []
 
         for table in result:
             for record in table.records:
                 try:
-                    value = record.get_value()
-                    values.append(value)
+                    values.append(record.get_value())
+                    timestamps.append(record.get_time())
                 except KeyError as exception:
                     logger.error(exception)
 
-        if values:
-            return (values[0], values[-1])  # Return the first and last value
-        return (None, None)
+        if len(values) < 2:
+            return 0.0  # Not enough data to calculate kWh
+
+        total_kwh = 0.0
+        for i in range(1, len(values)):
+            # Calculate the time difference in hours
+            time_diff = (timestamps[i] - timestamps[i - 1]).total_seconds() / 3600.0
+            # Calculate kWh for the interval and accumulate
+            total_kwh += (values[i - 1] * time_diff) / 1000.0  # Convert Watts to kW
+
+        return total_kwh
 
     def get_values_from_influx(
         self,

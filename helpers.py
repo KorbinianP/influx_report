@@ -1,10 +1,25 @@
 """Collection of some small helper functions"""
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 import logging
 from typing import \
     List  # until Python 3.8 you can't use list[] but must use typing.List[]
 
 logger = logging.getLogger("influx_report.helpers")
+
+
+@dataclass
+class MeasurementSet:
+    """Represents a set of measurements with associated data and dates.
+
+    Attributes:
+        name (str): The name of the measurement set.
+        data (list): A list containing the measurement data.
+        dates (tuple): A tuple containing the dates associated with the measurements.
+    """
+    name: str
+    data: list
+    dates: tuple
 
 
 def log_difference(values, timeframes, measurement_name):
@@ -20,6 +35,9 @@ def log_difference(values, timeframes, measurement_name):
 
     The function logs the energy usage for each timeframe, calculates the change in usage,
     and logs whether the usage has increased or decreased along with the amount of change.
+
+    Returns:
+        dict: the values packed into a dict
     """
     logger.info("-------- %s --------", measurement_name)
     logger.info("Usage %s to %s: %.1f kWh", timeframes[1][0].strftime("%d.%m.%y"), timeframes[1][1].strftime("%d.%m.%y"), values[1])
@@ -28,6 +46,7 @@ def log_difference(values, timeframes, measurement_name):
     logger.info("The usage %s by %.1f kWh", change, abs(values[1] - values[0]))
     # logger.info("----%s----", "-" * (len(measurement_name) + 2))
     logger.info("")
+    return MeasurementSet(name=measurement_name, data=values, dates=timeframes)
 
 
 def get_latest_value(timestamps: List[datetime], values: list):

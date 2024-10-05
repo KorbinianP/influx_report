@@ -7,7 +7,7 @@ coverage html
 import logging
 from datetime import datetime, timedelta, timezone
 
-from helpers import (get_latest_value, get_same_calendar_week_day_one_year_ago, is_first_of_month, is_sunday, last_sunday, log_difference)
+from helpers import get_latest_value, get_same_calendar_week_day_one_year_ago, is_first_of_month, is_sunday, last_sunday, log_difference
 
 
 def test_get_latest_value_empty_lists():
