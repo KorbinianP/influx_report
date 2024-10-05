@@ -20,7 +20,10 @@ jobs:
         pip install -r requirements.txt
     - name: Analysing the code with pylint
       run: |
-        pylint $(git ls-files '*.py')
+        make lint
     - name: Test with pytest
       run: |
-        pytest
+        make test
+    - name: Check code formatting with yapf
+      run: |
+        yapf --diff --recursive $(git ls-files '*.py') || exit 1
