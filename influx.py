@@ -26,9 +26,9 @@ class GetFromInflux():
     def __init__(self):
         """Parse config.ini and create the influx client"""
         config = configparser.ConfigParser()
-        config.read('config.ini')
 
         try:
+            config.read('config.ini')
             self.influx = InfluxConfigClass(
                 url=config.get("InfluxDB", "url"),
                 token=config.get("InfluxDB", "token"),

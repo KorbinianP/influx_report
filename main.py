@@ -93,6 +93,7 @@ def process(date, is_month):
     heizung[0] = round(heizung[0] / 1000, 1) - haushalt[0]
     heizung[1] = round(heizung[1] / 1000, 1) - haushalt[1]
     processed_data.append(log_difference(heizung, timeframes, "Heizung"))
+
     shelly_hei_ph1, _ = process_measurement_kwh(date, is_month, "Test_Shelly_3EM_Heizung_Ph1_Total")
     shelly_hei_ph2, _ = process_measurement_kwh(date, is_month, "Test_Shelly_3EM_Heizung_Ph2_Total")
     shelly_hei_ph3, _ = process_measurement_kwh(date, is_month, "Test_Shelly_3EM_Heizung_Ph3_Total")

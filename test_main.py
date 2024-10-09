@@ -1,6 +1,6 @@
 """unit test main.py"""
 from datetime import datetime
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -93,3 +93,37 @@ def test_process_measurement_watt(date, is_month, measurement_name, expected_usa
         result, _ = main.process_measurement_watt(date, is_month, measurement_name)
 
         assert result[1] == expected_usage
+
+
+@pytest.fixture
+def mock_helpers():
+    with patch('main.is_first_of_month', return_value=False), \
+         patch('main.is_sunday', return_value=False), \
+         patch('main.log_difference', return_value={}):
+        yield
+
+
+@pytest.fixture
+def mock_influx():
+    with patch('main.GetFromInflux') as mock_influx:
+        mock_instance = MagicMock()
+        mock_influx.return_value = mock_instance
+        mock_instance.get_values_from_influx.return_value = (100, 200)
+        mock_instance.get_total_kwh_consumed_from_influx.return_value = 0.1
+        yield mock_instance
+
+
+def test_process_monthly(mock_helpers, mock_influx):
+    date = datetime(2023, 9, 1)
+    is_month = True
+    result = main.process(date, is_month)
+    assert isinstance(result, list)
+    assert len(result) > 0
+
+
+def test_process_weekly(mock_helpers, mock_influx):
+    date = datetime(2023, 9, 3)  # Assume this is a Sunday
+    is_month = False
+    result = main.process(date, is_month)
+    assert isinstance(result, list)
+    assert len(result) > 0
