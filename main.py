@@ -102,6 +102,11 @@ def process(date, is_month):
     ]
     processed_data.append(log_difference(shelly_hh_total, timeframes, "Heizung absolut"))
 
+    einspeisung, _ = process_measurement_kwh(date, is_month, "SmartMeter_HeizungNeu_Einspeisung")
+    einspeisung[0] = round(einspeisung[0] / 1000, 1)
+    einspeisung[1] = round(einspeisung[1] / 1000, 1)
+    processed_data.append(log_difference(einspeisung, timeframes, "PV Einspeisung"))
+
     return processed_data
 
 
@@ -217,6 +222,7 @@ def main(today=datetime.now().replace(hour=23, minute=59, second=59)):
     if is_first_of_month(today):
         logger.debug("%s is the first of the month.", today.date())
         data = process(date=today, is_month=True)
+        create_bar_chart(data, "bar_chart_month.png")
         was_processed = True
     else:
         logger.debug("%s is not the first of the month.", today.date())
@@ -224,14 +230,13 @@ def main(today=datetime.now().replace(hour=23, minute=59, second=59)):
     if is_sunday(today):
         logger.debug("%s is a Sunday.", today.date())
         data = process(date=today, is_month=False)
+        create_bar_chart(data, "bar_chart_week.png")
         was_processed = True
     else:
         logger.debug("%s is not a Sunday.", today.date())
 
     if not was_processed:
         main(today - relativedelta(days=1))
-    else:
-        create_bar_chart(data)
 
 
 if __name__ == "__main__":
