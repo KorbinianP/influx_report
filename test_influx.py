@@ -22,9 +22,12 @@ def mock_influx_client():
 
 @pytest.fixture
 def influx_instance(mock_influx_client):
-    instance = GetFromInflux()
-    instance.influx.client = mock_influx_client
-    return instance
+    with patch('configparser.ConfigParser.read', return_value=None), \
+         patch('configparser.ConfigParser.has_section', return_value=True), \
+         patch('configparser.ConfigParser.get', side_effect=lambda section, option: 'mock_value'):
+        instance = GetFromInflux()
+        instance.influx.client = mock_influx_client
+        return instance
 
 
 def test_get_total_kwh_consumed_from_influx(influx_instance):
