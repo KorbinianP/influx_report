@@ -43,14 +43,14 @@ def create_bar_chart(measurement_sets: MeasurementSet, filename='bar_chart.png')
     differences = np.array(values_this) - np.array(values_last)
 
     for i in range(len(names)):
-        axis.text(x_axis[i] - width / 2, values_last[i] + 1, f"{differences[i]:+.1f}", ha='center', va='bottom')
+        axis.text(x_axis[i] - width / 2, max(values_last[i], values_this[i]) + 1, f"{differences[i]:+.1f}", ha='center', va='bottom')
         # if differences[i] < 0.0:
         # else:
         # ax.text(x[i] + width / 2, values_this[i] + 1, f"{differences[i]:+.1f}", ha='center', va='bottom')
 
     # Add some text for labels, title and custom x-axis tick labels, etc.
     axis.set_ylabel('Verbrauch in kWh oder m³')
-    axis.set_title('Stromverbrauch')
+    axis.set_title('Verbräuche')
     axis.set_xticks(x_axis)
     axis.set_xticklabels(names, rotation=45, ha='right')  # Rotate x-axis labels for better readability
     axis.legend()
