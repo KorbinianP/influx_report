@@ -69,9 +69,9 @@ def process(date, is_month):
         ("Zaehler_Mikrowelle", "Mikrowelle"),
         ("Zaehler_Netzwerkschrank", "Netzwerkschrank"),
         ("Zaehler_Spuelmaschine", "Spülmaschine"),
-        ("Zaehler_Wasser", "Wasser (m³)"),
+        ("Zaehler_Wasser_2025", "Wasser (m³)"),
         ("Zaehler_Wasser_Garten", "Wasser Garten (m³)"),
-        #("Zaehler_Backofen","Heizung"),
+        #("Zaehler_Backofen","Backofen"),
     ]
     for measurement in just_log_measurements:
         processed_data.append(process_and_log(date, is_month, measurement[0], measurement[1]))
@@ -147,8 +147,16 @@ def process_measurement_kwh(date, is_month, measurement_name):
         end_date=date,
     )
 
+    # If no values are found (NoneType), set them to 0.0
+    before = values_today[0]
+    if not values_today[0]:
+        before = 0.0
+    now = values_today[1]
+    if not values_today[1]:
+        now = 0.0
+
     # Calculate current year's usage
-    this_year_usage = values_today[1] - values_today[0]
+    this_year_usage = now - before
 
     # Calculate last year's usage for the same period
     values_last_year = influx.get_values_from_influx(
@@ -156,8 +164,15 @@ def process_measurement_kwh(date, is_month, measurement_name):
         start_date=one_year_ago - delta,
         end_date=one_year_ago,
     )
+    
+    before = values_last_year[0]
+    if not values_last_year[0]:
+        before = 0.0
+    now = values_last_year[1]
+    if not values_last_year[1]:
+        now = 0.0
 
-    last_year_usage = values_last_year[1] - values_last_year[0]
+    last_year_usage = now - before
     return [last_year_usage, this_year_usage], ((one_year_ago - delta, one_year_ago), (date - delta, date))
 
 
