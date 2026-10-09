@@ -2,6 +2,7 @@
 
 import configparser
 import logging
+import os
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 
@@ -26,12 +27,17 @@ logger = logging.getLogger("influx_report.influx")
 class GetFromInflux:
     """Get data from InfluxDB"""
 
-    def __init__(self):
+    def __init__(self, config_file: str = "config.ini"):
         """Parse config.ini and create the influx client"""
+        if not os.path.exists(config_file):
+            msg = f"Konfigurationsdatei '{config_file}' nicht gefunden! Bitte erstelle '{config_file}' mit der [InfluxDB]-Sektion (siehe README.md)."
+            logger.error(msg)
+            raise FileNotFoundError(msg)
+
         config = configparser.ConfigParser()
 
         try:
-            config.read("config.ini")
+            config.read(config_file)
             self.influx = InfluxConfigClass(
                 url=config.get("InfluxDB", "url"),
                 token=config.get("InfluxDB", "token"),
@@ -43,7 +49,7 @@ class GetFromInflux:
             logger.debug("Fill connect to InfluxDB %s", self.influx.url)
         except configparser.NoSectionError as error:
             logger.error("Not recoverable error: %s", error.message)
-            logger.error("Ensure that file config.ini exists and has a [InfluxDB] section.")
+            logger.error("Ensure that file %s exists and has a [InfluxDB] section.", config_file)
             logger.error(" See README.md for more details")
             raise error
 

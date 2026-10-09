@@ -335,14 +335,14 @@ def main(today: datetime | None = None) -> None:
     # Reuse single InfluxDB client instance for all queries
     try:
         influx_client = GetFromInflux()
+    except FileNotFoundError as exc:
+        logger.error("Kritischer Fehler: %s", exc)
+        raise SystemExit(1) from exc
     except Exception as exc:
         logger.error("Fehler beim Initialisieren der InfluxDB-Verbindung: %s", exc)
-        influx_client = None
+        raise SystemExit(1) from exc
 
-    if influx_client is not None:
-        data = process(date=target_date, is_month=is_month, influx=influx_client)
-    else:
-        data = process(date=target_date, is_month=is_month)
+    data = process(date=target_date, is_month=is_month, influx=influx_client)
     create_bar_chart(data, chart_filename)
     logger.info("Diagramm erfolgreich erstellt: %s", chart_filename)
 

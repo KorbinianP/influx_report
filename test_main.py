@@ -57,11 +57,17 @@ def test_process_and_log(date, is_month, measurement_name, name, is_watt):
 )
 def test_main(test_date, verify_date, is_first_of_month):
     """test main function with different combinations"""
-    with patch("main.process") as mock_process, patch("main.datetime") as mock_datetime, patch("main.create_bar_chart") as _mock_create_bar_chart:
+    with (
+        patch("main.process") as mock_process,
+        patch("main.datetime") as mock_datetime,
+        patch("main.create_bar_chart") as _mock_create_bar_chart,
+        patch("main.GetFromInflux") as mock_get_influx,
+    ):
         mock_datetime.now.return_value = test_date
+        mock_influx_instance = mock_get_influx.return_value
         main.main(today=test_date)
 
-        mock_process.assert_any_call(date=verify_date, is_month=is_first_of_month)
+        mock_process.assert_called_once_with(date=verify_date, is_month=is_first_of_month, influx=mock_influx_instance)
 
 
 @pytest.mark.parametrize(

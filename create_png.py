@@ -104,13 +104,13 @@ def create_bar_chart(measurement_sets: Sequence[MeasurementSet], filename: str =
             va="center",
             ha="left",
             fontsize=8.5,
-            fontweight="semibold",
+            fontweight="bold",
             color=diff_color,
         )
 
     # Labels and aesthetics
     ax.set_yticks(y_pos)
-    ax.set_yticklabels(names, fontsize=10, fontweight="medium", color="#1e293b")
+    ax.set_yticklabels(names, fontsize=10, fontweight="normal", color="#1e293b")
     ax.invert_yaxis()  # top-down order as defined in list
 
     ax.set_xlabel("Verbrauch (kWh bzw. m³)", fontsize=10, fontweight="bold", color="#334155", labelpad=8)

@@ -84,16 +84,21 @@ def test_get_values_from_influx_exception(influx_instance):
         influx_instance.get_values_from_influx("test_measurement", start_date, end_date)
 
 
-def test_missing_config_ini():
-    with patch("configparser.ConfigParser.read", side_effect=configparser.NoSectionError("InfluxDB")):
+def test_missing_config_ini_file_not_found():
+    with patch("os.path.exists", return_value=False):
+        with pytest.raises(FileNotFoundError, match="nicht gefunden"):
+            GetFromInflux("non_existent_config.ini")
+
+
+def test_missing_config_ini_no_section():
+    with patch("os.path.exists", return_value=True), patch("configparser.ConfigParser.read", return_value=None):
         with pytest.raises(configparser.NoSectionError):
             GetFromInflux()
 
 
 def test_no_section_error_handling():
-    with patch("configparser.ConfigParser.read", side_effect=configparser.NoSectionError("InfluxDB")) as mock_read:
+    with patch("os.path.exists", return_value=True), patch("configparser.ConfigParser.read", return_value=None):
         try:
             GetFromInflux()
         except configparser.NoSectionError as error:
             assert str(error) == "No section: 'InfluxDB'"
-        mock_read.assert_called_once()
