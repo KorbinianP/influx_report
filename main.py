@@ -70,7 +70,7 @@ def process(date, is_month):
         ("Zaehler_Netzwerkschrank", "Netzwerkschrank"),
         ("Zaehler_Spuelmaschine", "Spülmaschine"),
         ("Zaehler_Wasser_2025", "Wasser (m³)"),
-        ("Zaehler_Wasser_Garten", "Wasser Garten (m³)"),
+        ("Zaehler_Wasser_Garten_2025", "Wasser Garten (m³)"),
         #("Zaehler_Backofen","Backofen"),
     ]
     for measurement in just_log_measurements:
