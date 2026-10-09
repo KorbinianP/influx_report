@@ -68,7 +68,7 @@ def test_get_values_from_influx_no_data(influx_instance):
     start_date = datetime(2023, 1, 1)
     end_date = datetime(2023, 1, 2)
     result = influx_instance.get_values_from_influx("test_measurement", start_date, end_date)
-    assert result == (None, None)  # No data should return (None, None)
+    assert result == (0, 0)  # No data should default to (0, 0)
 
 
 def test_get_values_from_influx_exception(influx_instance):
