@@ -127,3 +127,25 @@ def test_process_weekly(mock_helpers, mock_influx):
     result = main.process(date, is_month)
     assert isinstance(result, list)
     assert len(result) > 0
+
+
+def test_find_target_reporting_date():
+    # 1st of month
+    target, is_month = main.find_target_reporting_date(datetime(2024, 10, 1))
+    assert target == datetime(2024, 10, 1)
+    assert is_month is True
+
+    # 2nd of month should fall back to 1st of month
+    target, is_month = main.find_target_reporting_date(datetime(2024, 10, 2))
+    assert target == datetime(2024, 10, 1)
+    assert is_month is True
+
+    # Sunday
+    target, is_month = main.find_target_reporting_date(datetime(2024, 10, 6))
+    assert target == datetime(2024, 10, 6)
+    assert is_month is False
+
+    # Wednesday (midweek) should fall back to previous Sunday (2024-10-06)
+    target, is_month = main.find_target_reporting_date(datetime(2024, 10, 9))
+    assert target == datetime(2024, 10, 6)
+    assert is_month is False

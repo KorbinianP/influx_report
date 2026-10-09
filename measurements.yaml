@@ -1,0 +1,102 @@
+# Measurements Configuration for Influx Report
+# Each entry defines:
+#   name: Display label shown in charts and logs
+#   measurement: Exact measurement name in InfluxDB
+#   type: 'watt' (for power in W/kW integrated over time) or 'counter' (for increasing counters in kWh, Wh, m3)
+#   scale: multiplier to convert raw values to target unit (kWh or m³). Default is 1.0.
+#          e.g. 0.1 for deka-kWh (go-e), 0.001 for Wh to kWh.
+#   subtract_from: list of names whose usage is already contained in this meter and must be subtracted (e.g. Kaskadenschaltung)
+#   sum_of: list of measurement names to sum up into a single total (e.g. 3 phases)
+
+measurements:
+  # Power (W) measurements
+  - name: "Kühlschrank"
+    measurement: "Strom_Leistung_Kuehlschrank"
+    type: "watt"
+
+  - name: "Waschmaschine"
+    measurement: "Strom_Leistung_Waschmaschine"
+    type: "watt"
+
+  - name: "Trockner"
+    measurement: "Strom_Leistung_Trockner"
+    type: "watt"
+
+  - name: "TV EG"
+    measurement: "Strom_Leistung_TV_EG"
+    type: "watt"
+
+  - name: "TV UG"
+    measurement: "Strom_TV_K1_Watt"
+    type: "watt"
+
+  - name: "Wasserpumpe"
+    measurement: "Strom_Leistung_Wasserpumpe"
+    type: "watt"
+
+  # go-e "eto" is in deka kWh, value 1 = 0.1 kWh
+  - name: "E-Auto"
+    measurement: "GoEChargerEnergyTotal"
+    type: "counter"
+    scale: 0.1
+
+  # Standard counters
+  - name: "Kochfeld"
+    measurement: "Zaehler_Ceran"
+    type: "counter"
+
+  - name: "Mikrowelle"
+    measurement: "Zaehler_Mikrowelle"
+    type: "counter"
+
+  - name: "Netzwerkschrank"
+    measurement: "Zaehler_Netzwerkschrank"
+    type: "counter"
+
+  - name: "Spülmaschine"
+    measurement: "Zaehler_Spuelmaschine"
+    type: "counter"
+
+  - name: "Wasser (m³)"
+    measurement: "Zaehler_Wasser_2025"
+    type: "counter"
+
+  - name: "Wasser Garten (m³)"
+    measurement: "Zaehler_Wasser_Garten_2025"
+    type: "counter"
+
+  # Haushalt Zähler
+  - name: "Haushalt Zähler"
+    measurement: "SmartMeter_Haushalt_Bezug"
+    type: "counter"
+
+  # Haushalt absolut (Summe aus 3 Phasen Shelly, in Wh -> scale 0.001)
+  - name: "Haushalt absolut"
+    sum_of:
+      - "Test_Shelly_3EM_Haushalt_Ph1_Total"
+      - "Test_Shelly_3EM_Haushalt_Ph2_Total"
+      - "Test_Shelly_3EM_Haushalt_Ph3_Total"
+    type: "counter"
+    scale: 0.001
+
+  # Heizung Bezug (in Wh, abzgl. Haushalt wg. Kaskadenschaltung)
+  - name: "Heizung"
+    measurement: "SmartMeter_HeizungNeu_Bezug"
+    type: "counter"
+    scale: 0.001
+    subtract: "Haushalt Zähler"
+
+  # Heizung absolut (Summe aus 3 Phasen Shelly, in Wh -> scale 0.001)
+  - name: "Heizung absolut"
+    sum_of:
+      - "Test_Shelly_3EM_Heizung_Ph1_Total"
+      - "Test_Shelly_3EM_Heizung_Ph2_Total"
+      - "Test_Shelly_3EM_Heizung_Ph3_Total"
+    type: "counter"
+    scale: 0.001
+
+  # PV Einspeisung (in Wh -> scale 0.001)
+  - name: "PV Einspeisung"
+    measurement: "SmartMeter_HeizungNeu_Einspeisung"
+    type: "counter"
+    scale: 0.001

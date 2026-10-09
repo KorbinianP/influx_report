@@ -3,4 +3,5 @@ influxdb-client
 matplotlib
 pylint
 pytest
+pyyaml
 yapf
