@@ -1,14 +1,17 @@
 """Get data from InfluxDB"""
-from datetime import datetime, timedelta
-from dataclasses import dataclass
-import logging
+
 import configparser
+import logging
+from dataclasses import dataclass
+from datetime import datetime, timedelta
+
 from influxdb_client import InfluxDBClient
 
 
 @dataclass
 class InfluxConfigClass:
     """All configuration and client belonging to an InfluxDB"""
+
     url: str
     token: str
     org: str
@@ -20,7 +23,7 @@ logger = logging.getLogger("influx_report.influx")
 
 
 # pylint: disable-next=too-few-public-methods
-class GetFromInflux():
+class GetFromInflux:
     """Get data from InfluxDB"""
 
     def __init__(self):
@@ -28,14 +31,15 @@ class GetFromInflux():
         config = configparser.ConfigParser()
 
         try:
-            config.read('config.ini')
+            config.read("config.ini")
             self.influx = InfluxConfigClass(
                 url=config.get("InfluxDB", "url"),
                 token=config.get("InfluxDB", "token"),
                 org=config.get("InfluxDB", "org"),
                 bucket=config.get("InfluxDB", "bucket"),
                 # Verbindung zur InfluxDB herstellen
-                client=InfluxDBClient(url=config.get("InfluxDB", "url"), token=config.get("InfluxDB", "token")))
+                client=InfluxDBClient(url=config.get("InfluxDB", "url"), token=config.get("InfluxDB", "token")),
+            )
             logger.debug("Fill connect to InfluxDB %s", self.influx.url)
         except configparser.NoSectionError as error:
             logger.error("Not recoverable error: %s", error.message)
@@ -61,7 +65,7 @@ class GetFromInflux():
         """
         logger.debug("Get kWh from %s to %s", start_date, end_date)
         query = f"""from(bucket:"{self.influx.bucket}")
-        |> range(start: {start_date.strftime('%Y-%m-%dT%H:%M:%S.%fZ')}, stop: {end_date.strftime('%Y-%m-%dT%H:%M:%S.%fZ')})
+        |> range(start: {start_date.strftime("%Y-%m-%dT%H:%M:%S.%fZ")}, stop: {end_date.strftime("%Y-%m-%dT%H:%M:%S.%fZ")})
         |> filter(fn: (r) => r._measurement == "{measurement_name}")
         |> sort(columns: ["_time"], desc: false)"""
 
@@ -98,49 +102,49 @@ class GetFromInflux():
         max_lookback_days: int = 3,
     ):
         """
-        Retrieves the last recorded values from InfluxDB for a specified measurement 
-        over two distinct timeframes: the entire day of the start date and the entire 
+        Retrieves the last recorded values from InfluxDB for a specified measurement
+        over two distinct timeframes: the entire day of the start date and the entire
         day of the end date.
-        
-        If no data is found for a given date, the function will look back up to 
+
+        If no data is found for a given date, the function will look back up to
         max_lookback_days to find the most recent available data.
-        
+
         Args:
             measurement_name (str): The name of the measurement stored in InfluxDB.
-            start_date (datetime): The date for the start of the query, used to define 
+            start_date (datetime): The date for the start of the query, used to define
                                 the range from 00:00:00 to 23:59:59 of that day.
-            end_date (datetime): The date for the end of the query, used to define 
+            end_date (datetime): The date for the end of the query, used to define
                                 the range from 00:00:00 to 23:59:59 of that day.
-            max_lookback_days (int): Maximum number of days to look back if no data 
+            max_lookback_days (int): Maximum number of days to look back if no data
                                     is found (default: 3).
-        
+
         Returns:
-            tuple: A tuple containing the last value recorded for the start date and 
-                the last value recorded for the end date. If no values are found 
+            tuple: A tuple containing the last value recorded for the start date and
+                the last value recorded for the end date. If no values are found
                 after looking back max_lookback_days, None is returned for that timeframe.
         """
-        
+
         def get_value_for_date(target_date: datetime, max_days: int) -> any:
             """Helper function to get value for a specific date with lookback."""
             for days_back in range(max_days + 1):
                 query_date = target_date - timedelta(days=days_back)
-                
+
                 logger.debug(
                     "Querying %s for date %s (looking back %d days from %s)",
                     measurement_name,
-                    query_date.strftime('%Y-%m-%d'),
+                    query_date.strftime("%Y-%m-%d"),
                     days_back,
-                    target_date.strftime('%Y-%m-%d')
+                    target_date.strftime("%Y-%m-%d"),
                 )
-                
+
                 query = f"""from(bucket:"{self.influx.bucket}")
-                |> range(start: {query_date.strftime('%Y-%m-%dT00:00:00Z')}, stop: {query_date.strftime('%Y-%m-%dT23:59:59Z')})
+                |> range(start: {query_date.strftime("%Y-%m-%dT00:00:00Z")}, stop: {query_date.strftime("%Y-%m-%dT23:59:59Z")})
                 |> filter(fn: (r) => r._measurement == "{measurement_name}")
                 |> sort(columns: ["_time"], desc: false)"""
-                
+
                 result = self.influx.client.query_api().query(org=self.influx.org, query=query)
                 values = []
-                
+
                 for table in result:
                     for record in table.records:
                         try:
@@ -148,26 +152,16 @@ class GetFromInflux():
                             values.append(value)
                         except KeyError as exception:
                             logger.error(exception)
-                
+
                 if values:
-                    logger.debug(
-                        "Found %d values for %s (looked back %d days)",
-                        len(values),
-                        query_date.strftime('%Y-%m-%d'),
-                        days_back
-                    )
+                    logger.debug("Found %d values for %s (looked back %d days)", len(values), query_date.strftime("%Y-%m-%d"), days_back)
                     return values[-1]
-            
-            logger.warning(
-                "No values found for measurement '%s' within %d days of %s",
-                measurement_name,
-                max_days,
-                target_date.strftime('%Y-%m-%d')
-            )
+
+            logger.warning("No values found for measurement '%s' within %d days of %s", measurement_name, max_days, target_date.strftime("%Y-%m-%d"))
             return None
-        
+
         logger.debug("Get value from %s to %s", start_date, end_date)
-        
+
         # Get values for both dates with lookback
         value_start = get_value_for_date(start_date, max_lookback_days)
         value_end = get_value_for_date(end_date, max_lookback_days)
@@ -179,7 +173,7 @@ class GetFromInflux():
         elif value_end is None and value_start is not None:
             logger.info("End value is None, using start value for both: %s", value_start)
             value_end = value_start
-        
+
         # If both are None, set both to 0
         if value_start is None and value_end is None:
             logger.info("Both values are None, defaulting to 0")

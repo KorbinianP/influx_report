@@ -1,9 +1,8 @@
 """Collection of some small helper functions"""
+
+import logging
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-import logging
-from typing import \
-    List  # until Python 3.8 you can't use list[] but must use typing.List[]
 
 logger = logging.getLogger("influx_report.helpers")
 
@@ -17,6 +16,7 @@ class MeasurementSet:
         data (list): A list containing the measurement data.
         dates (tuple): A tuple containing the dates associated with the measurements.
     """
+
     name: str
     data: list
     dates: tuple
@@ -27,7 +27,7 @@ def log_difference(values, timeframes, measurement_name):
     Logs the difference in energy usage between two timeframes.
 
     Parameters:
-        values (list): A list containing two float values representing energy 
+        values (list): A list containing two float values representing energy
                        usage in kWh for the two timeframes.
         timeframes (list): A list containing two tuples, each with two datetime objects representing
                            the start and end dates of the respective timeframes.
@@ -42,14 +42,14 @@ def log_difference(values, timeframes, measurement_name):
     logger.info("-------- %s --------", measurement_name)
     logger.info("Usage %s to %s: %.1f kWh", timeframes[1][0].strftime("%d.%m.%y"), timeframes[1][1].strftime("%d.%m.%y"), values[1])
     logger.info("Usage %s to %s: %.1f kWh", timeframes[0][0].strftime("%d.%m.%y"), timeframes[0][1].strftime("%d.%m.%y"), values[0])
-    change = 'increased' if values[1] > values[0] else 'decreased'
+    change = "increased" if values[1] > values[0] else "decreased"
     logger.info("The usage %s by %.1f kWh", change, abs(values[1] - values[0]))
     # logger.info("----%s----", "-" * (len(measurement_name) + 2))
     logger.info("")
     return MeasurementSet(name=measurement_name, data=values, dates=timeframes)
 
 
-def get_latest_value(timestamps: List[datetime], values: list):
+def get_latest_value(timestamps: list[datetime], values: list):
     """Scan through a list of timestamps and get the latest date.
     Return the date and the value in the same position
 

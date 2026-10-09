@@ -3,22 +3,24 @@ Read from an influxdb for configured items the values of last month or week,
 depending on if it is the first of the month or sunday (or fallback to the most recent one).
 Compare it against the same timeframe last year and output details to console and PNG chart.
 """
+
 import argparse
-from datetime import datetime
 import logging
+from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
+
 import yaml
 from dateutil.relativedelta import relativedelta
 
+from create_png import create_bar_chart
 from helpers import (
+    MeasurementSet,
     get_same_calendar_week_day_one_year_ago,
     is_first_of_month,
     is_sunday,
     log_difference,
-    MeasurementSet,
 )
-from create_png import create_bar_chart
 from influx import GetFromInflux
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
@@ -27,12 +29,12 @@ logger = logging.getLogger("influx_report.main")
 DEFAULT_CONFIG_PATH = Path(__file__).parent / "measurements.yaml"
 
 
-def load_measurements_config(config_path: Path = DEFAULT_CONFIG_PATH) -> List[Dict[str, Any]]:
+def load_measurements_config(config_path: Path = DEFAULT_CONFIG_PATH) -> list[dict[str, Any]]:
     """Loads measurements configuration from a YAML file.
     If the file does not exist, returns None so default built-in configuration is used.
     """
     if config_path.exists():
-        with open(config_path, "r", encoding="utf-8") as f:
+        with open(config_path, encoding="utf-8") as f:
             data = yaml.safe_load(f)
             return data.get("measurements", [])
     return []
@@ -42,8 +44,8 @@ def process_measurement_kwh(
     date: datetime,
     is_month: bool,
     measurement_name: str,
-    influx: Optional[GetFromInflux] = None,
-) -> Tuple[List[float], Tuple[Tuple[datetime, datetime], Tuple[datetime, datetime]]]:
+    influx: GetFromInflux | None = None,
+) -> tuple[list[float], tuple[tuple[datetime, datetime], tuple[datetime, datetime]]]:
     """
     Entry point for processing usage data based on the specified period. The measurement is in Wh or kWh.
 
@@ -96,8 +98,8 @@ def process_measurement_watt(
     date: datetime,
     is_month: bool,
     measurement_name: str,
-    influx: Optional[GetFromInflux] = None,
-) -> Tuple[List[float], Tuple[Tuple[datetime, datetime], Tuple[datetime, datetime]]]:
+    influx: GetFromInflux | None = None,
+) -> tuple[list[float], tuple[tuple[datetime, datetime], tuple[datetime, datetime]]]:
     """
     Entry point for processing usage data based on the specified period. The measurement is in W or kW.
 
@@ -144,10 +146,10 @@ def process_and_log(
     measurement_name: str,
     name: str,
     is_watt: bool = False,
-    influx: Optional[GetFromInflux] = None,
+    influx: GetFromInflux | None = None,
 ) -> MeasurementSet:
     """
-    Processes the specified measurement for a given date, determining values and 
+    Processes the specified measurement for a given date, determining values and
     timeframes, and logs the differences.
 
     Args:
@@ -177,15 +179,14 @@ def process_and_log(
 def process_from_config(
     date: datetime,
     is_month: bool,
-    config: List[Dict[str, Any]],
-    influx: Optional[GetFromInflux] = None,
-) -> List[MeasurementSet]:
+    config: list[dict[str, Any]],
+    influx: GetFromInflux | None = None,
+) -> list[MeasurementSet]:
     """Processes measurements configured via YAML file."""
     if influx is None:
         influx = GetFromInflux()
 
-    results_by_name: Dict[str, MeasurementSet] = {}
-    timeframes_ref = None
+    results_by_name: dict[str, MeasurementSet] = {}
 
     for item in config:
         name = item["name"]
@@ -201,7 +202,6 @@ def process_from_config(
                 v, tf = process_measurement_kwh(date, is_month, sub_meas, influx=influx)
                 total_values[0] += v[0]
                 total_values[1] += v[1]
-            timeframes_ref = tf
             scaled_values = [round(total_values[0] * scale, 1), round(total_values[1] * scale, 1)]
             ms = log_difference(scaled_values, tf, name)
             results_by_name[name] = ms
@@ -212,7 +212,6 @@ def process_from_config(
         else:
             meas_name = item["measurement"]
             v, tf = process_measurement_kwh(date, is_month, meas_name, influx=influx)
-            timeframes_ref = tf
             scaled_values = [round(v[0] * scale, 1), round(v[1] * scale, 1)]
             if subtract_target and subtract_target in results_by_name:
                 sub_ms = results_by_name[subtract_target]
@@ -226,7 +225,7 @@ def process_from_config(
     return list(results_by_name.values())
 
 
-def process_builtin(date: datetime, is_month: bool, influx: Optional[GetFromInflux] = None) -> List[MeasurementSet]:
+def process_builtin(date: datetime, is_month: bool, influx: GetFromInflux | None = None) -> list[MeasurementSet]:
     """Default fallback processing if no YAML config is present."""
     if influx is None:
         influx = GetFromInflux()
@@ -291,7 +290,7 @@ def process_builtin(date: datetime, is_month: bool, influx: Optional[GetFromInfl
     return processed_data
 
 
-def process(date: datetime, is_month: bool, influx: Optional[GetFromInflux] = None) -> List[MeasurementSet]:
+def process(date: datetime, is_month: bool, influx: GetFromInflux | None = None) -> list[MeasurementSet]:
     """Processes measurements using measurements.yaml if available, otherwise builtin definitions."""
     cfg = load_measurements_config()
     if cfg:
@@ -299,7 +298,7 @@ def process(date: datetime, is_month: bool, influx: Optional[GetFromInflux] = No
     return process_builtin(date, is_month, influx=influx)
 
 
-def find_target_reporting_date(ref_date: datetime) -> Tuple[datetime, bool]:
+def find_target_reporting_date(ref_date: datetime) -> tuple[datetime, bool]:
     """
     Determines the appropriate reporting date and period type (month vs week).
     If ref_date is already the 1st of a month or Sunday, it is used.
@@ -317,7 +316,7 @@ def find_target_reporting_date(ref_date: datetime) -> Tuple[datetime, bool]:
         current = current - relativedelta(days=1)
 
 
-def main(today: Optional[datetime] = None) -> None:
+def main(today: datetime | None = None) -> None:
     """
     Main function to execute the processing of energy measurements.
 

@@ -4,6 +4,7 @@ Run the tests with coverage and generate HTML report
 coverage run -m pytest test_main.py
 coverage html
 """
+
 import logging
 from datetime import datetime, timedelta, timezone
 

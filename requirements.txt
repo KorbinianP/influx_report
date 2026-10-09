@@ -1,7 +1,8 @@
 coverage
 influxdb-client
 matplotlib
-pylint
+numpy
 pytest
+python-dateutil
 pyyaml
-yapf
+ruff
