@@ -13,20 +13,21 @@ from typing import Any
 import yaml
 from dateutil.relativedelta import relativedelta
 
-from create_png import create_bar_chart
-from helpers import (
+from influx_report.chart import create_bar_chart
+from influx_report.helpers import (
     MeasurementSet,
     get_same_calendar_week_day_one_year_ago,
     is_first_of_month,
     is_sunday,
     log_difference,
 )
-from influx import GetFromInflux
+from influx_report.influx import GetFromInflux
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 logger = logging.getLogger("influx_report.main")
 
-DEFAULT_CONFIG_PATH = Path(__file__).parent / "measurements.yaml"
+# Default config paths in project root
+DEFAULT_CONFIG_PATH = Path.cwd() / "measurements.yaml"
 
 
 def load_measurements_config(config_path: Path = DEFAULT_CONFIG_PATH) -> list[dict[str, Any]]:

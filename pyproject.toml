@@ -40,5 +40,6 @@ ignore = [
 combine-as-imports = true
 
 [tool.pytest.ini_options]
-testpaths = ["."]
+testpaths = ["tests"]
+pythonpath = ["src"]
 python_files = ["test_*.py"]

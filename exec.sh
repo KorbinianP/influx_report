@@ -31,7 +31,7 @@ echo "Python executable: $(command -v "${PYTHON_BIN}")"
 rm -f "${SCRIPT_DIR}"/*.png 2>/dev/null || true
 
 # Run report generator, passing any CLI arguments through
-echo "Running main.py..."
-"${PYTHON_BIN}" "${SCRIPT_DIR}/main.py" "$@"
+echo "Running influx_report..."
+PYTHONPATH="${SCRIPT_DIR}/src" "${PYTHON_BIN}" -m influx_report.main "$@"
 
 echo "Completed successfully: $(date)"

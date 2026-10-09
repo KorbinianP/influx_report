@@ -5,7 +5,7 @@ from collections.abc import Sequence
 import matplotlib.pyplot as plt
 import numpy as np
 
-from helpers import MeasurementSet
+from influx_report.helpers import MeasurementSet
 
 
 def format_dates(dates):

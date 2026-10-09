@@ -74,17 +74,17 @@ Für die automatisierte Ausführung durch OpenHAB (z. B. via `executeCommandLine
 - **Logging:** Schreibt Logs bei Vorhandensein von Rechten automatisch nach `/var/log/openhab/executable_script.log`.
 - **Parameterweiterleitung:** Unterstützt ebenfalls CLI-Parameter, z. B. `./exec.sh --date 2024-10-01`.
 
-### Direct Python Execution (`main.py`)
+### Direct Python Execution
 
 - **Standardlauf:**
   ```bash
-  python main.py
+  python -m influx_report.main
   ```
   Erkennt automatisch, ob heute Sonntag oder der 1. des Monats ist. Wird das Skript an einem anderen Wochentag (z. B. Mittwoch) aufgerufen, fällt es automatisch auf den zuletzt zurückliegenden Stichtag (Sonntag oder 1. des Monats) zurück.
 
 - **Manueller Lauf für ein bestimmtes historisches Datum:**
   ```bash
-  python main.py --date 2024-10-01
+  python -m influx_report.main --date 2024-10-01
   ```
 
 ## Development & Testing

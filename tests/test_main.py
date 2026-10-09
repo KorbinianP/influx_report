@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-import main
+from influx_report import main
 
 # pylint: disable=missing-function-docstring
 
@@ -22,9 +22,9 @@ date2 = datetime(year=2024, month=10, day=6)
 )
 def test_process_and_log(date, is_month, measurement_name, name, is_watt):
     with (
-        patch("main.process_measurement_watt") as mock_process_watt,
-        patch("main.process_measurement_kwh") as mock_process_kwh,
-        patch("main.log_difference") as mock_log_difference,
+        patch("influx_report.main.process_measurement_watt") as mock_process_watt,
+        patch("influx_report.main.process_measurement_kwh") as mock_process_kwh,
+        patch("influx_report.main.log_difference") as mock_log_difference,
     ):
         # Mock return values based on is_watt
         if is_watt:
@@ -58,10 +58,10 @@ def test_process_and_log(date, is_month, measurement_name, name, is_watt):
 def test_main(test_date, verify_date, is_first_of_month):
     """test main function with different combinations"""
     with (
-        patch("main.process") as mock_process,
-        patch("main.datetime") as mock_datetime,
-        patch("main.create_bar_chart") as _mock_create_bar_chart,
-        patch("main.GetFromInflux") as mock_get_influx,
+        patch("influx_report.main.process") as mock_process,
+        patch("influx_report.main.datetime") as mock_datetime,
+        patch("influx_report.main.create_bar_chart") as _mock_create_bar_chart,
+        patch("influx_report.main.GetFromInflux") as mock_get_influx,
     ):
         mock_datetime.now.return_value = test_date
         mock_influx_instance = mock_get_influx.return_value
@@ -80,7 +80,7 @@ def test_main(test_date, verify_date, is_first_of_month):
     ],
 )
 def test_process_measurement_kwh(date, is_month, measurement_name, expected_usage):
-    with patch("main.GetFromInflux") as mock_influx:
+    with patch("influx_report.main.GetFromInflux") as mock_influx:
         mock_influx_instance = mock_influx.return_value
         mock_influx_instance.get_values_from_influx.return_value = [0, expected_usage]
 
@@ -99,7 +99,7 @@ def test_process_measurement_kwh(date, is_month, measurement_name, expected_usag
     ],
 )
 def test_process_measurement_watt(date, is_month, measurement_name, expected_usage):
-    with patch("main.GetFromInflux") as mock_influx:
+    with patch("influx_report.main.GetFromInflux") as mock_influx:
         mock_influx_instance = mock_influx.return_value
         mock_influx_instance.get_total_kwh_consumed_from_influx.return_value = expected_usage
 
@@ -111,16 +111,16 @@ def test_process_measurement_watt(date, is_month, measurement_name, expected_usa
 @pytest.fixture
 def mock_helpers():
     with (
-        patch("main.is_first_of_month", return_value=False),
-        patch("main.is_sunday", return_value=False),
-        patch("main.log_difference", return_value={}),
+        patch("influx_report.main.is_first_of_month", return_value=False),
+        patch("influx_report.main.is_sunday", return_value=False),
+        patch("influx_report.main.log_difference", return_value={}),
     ):
         yield
 
 
 @pytest.fixture
 def mock_influx():
-    with patch("main.GetFromInflux") as mock_influx:
+    with patch("influx_report.main.GetFromInflux") as mock_influx:
         mock_instance = MagicMock()
         mock_influx.return_value = mock_instance
         mock_instance.get_values_from_influx.return_value = (100, 200)

@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from influx import GetFromInflux
+from influx_report.influx import GetFromInflux
 
 
 @pytest.fixture

@@ -3,8 +3,8 @@
 import datetime
 from unittest.mock import MagicMock
 
-from create_png import create_bar_chart, format_dates
-from helpers import MeasurementSet
+from influx_report.chart import create_bar_chart, format_dates
+from influx_report.helpers import MeasurementSet
 
 # pylint: disable=missing-function-docstring
 
