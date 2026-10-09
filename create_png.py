@@ -1,4 +1,4 @@
-"""Create a PNG with a bar chart, optimized for clarity and smartphone display."""
+"""Create a PNG with a modern card-style bar chart, optimized for clarity and smartphone display."""
 
 from collections.abc import Sequence
 
@@ -26,10 +26,11 @@ def create_bar_chart(measurement_sets: Sequence[MeasurementSet], filename: str =
     """Creates a modern, horizontal bar chart from an array of MeasurementSet and saves it as a PNG.
 
     Optimized for smartphone viewing (Telegram):
-    - Horizontal layout (barh) provides plenty of room for device labels
-    - Sorted or categorized cleanly
+    - Clean 'Card/Dashboard' layout for each device row
+    - Device name and current value/delta badge placed directly ABOVE the bars
+    - Prevents wasting horizontal width and keeps bars readable across full width
     - Color-coded delta badges (green for reduction/savings, red for increase)
-    - High DPI and clean typography
+    - High DPI and modern typography
 
     Args:
         measurement_sets (list): A list of MeasurementSet objects.
@@ -47,88 +48,122 @@ def create_bar_chart(measurement_sets: Sequence[MeasurementSet], filename: str =
     differences = np.array(values_this) - np.array(values_last)
 
     num_items = len(names)
-    # Dynamic height depending on number of items: ~0.55 inch per item + margins
-    fig_height = max(7.0, num_items * 0.6 + 2.0)
-    fig, ax = plt.subplots(figsize=(10, fig_height), dpi=150)
+    fig_height = max(6.0, num_items * 0.9 + 1.6)
+    fig, ax = plt.subplots(figsize=(8.5, fig_height), dpi=150)
 
-    # Clean, modern style
-    ax.set_facecolor("#f8fafc")  # subtle cool grey/white
-    fig.patch.set_facecolor("#ffffff")
-
-    y_pos = np.arange(num_items)
-    bar_height = 0.36
-
-    # Colors
+    color_bg = "#ffffff"
     color_last = "#94a3b8"  # slate-400 (neutral historical)
     color_this = "#2563eb"  # royal blue (active current period)
+    color_card_bg = "#f8fafc"  # subtle card background per row
+
+    fig.patch.set_facecolor(color_bg)
+    ax.set_facecolor(color_bg)
+
+    y_slots = np.arange(num_items)
+    bar_height = 0.22
 
     label_last = format_dates(measurement_sets[0].dates[0])
     label_this = format_dates(measurement_sets[0].dates[1])
 
-    # Draw bars (Last year on top or slightly shifted)
-    ax.barh(y_pos + bar_height / 2, values_last, height=bar_height, label=f"Vorjahr ({label_last})", color=color_last, alpha=0.85, edgecolor="none")
-    ax.barh(y_pos - bar_height / 2, values_this, height=bar_height, label=f"Aktuell ({label_this})", color=color_this, alpha=0.95, edgecolor="none")
-
-    # Add delta annotations & values next to bars
     max_val = max(max(values_last, default=0), max(values_this, default=0), 1)
-    offset_padding = max_val * 0.015
 
+    # Subtle row background tracks
+    for i in range(num_items):
+        ax.fill_between(
+            [0, max_val * 1.02],
+            y_slots[i] - 0.46,
+            y_slots[i] + 0.36,
+            color=color_card_bg,
+            zorder=0,
+            edgecolor="#f1f5f9",
+            linewidth=0.8,
+        )
+
+    # Draw bars: Vorjahr lower, Aktuell upper in slot
+    ax.barh(
+        y_slots + 0.14,
+        values_last,
+        height=bar_height,
+        label=f"Vorjahr ({label_last})",
+        color=color_last,
+        alpha=0.85,
+        edgecolor="none",
+        zorder=2,
+    )
+    ax.barh(
+        y_slots - 0.12,
+        values_this,
+        height=bar_height,
+        label=f"Aktuell ({label_this})",
+        color=color_this,
+        alpha=0.95,
+        edgecolor="none",
+        zorder=2,
+    )
+
+    # Add header line (Name on left, Value & Delta badge on right) directly above bars
     for i in range(num_items):
         diff = differences[i]
         curr_val = values_this[i]
         last_val = values_last[i]
-        higher_bar = max(curr_val, last_val)
+        unit = "m³" if "wasser" in names[i].lower() else "kWh"
 
-        # Delta color: green if decreased (good for consumption), red/rose if increased
-        # Special case for PV Einspeisung: higher is actually better, but generally highlight direction
         is_pv = "einspeisung" in names[i].lower()
         if diff < 0:
-            diff_color = "#dc2626" if is_pv else "#16a34a"  # red if PV dropped, green if normal dropped
+            delta_color = "#dc2626" if is_pv else "#16a34a"  # red if drop in PV, green if drop in consumption
+            symbol = "▼"
         elif diff > 0:
-            diff_color = "#16a34a" if is_pv else "#dc2626"  # green if PV grew, red if normal grew
+            delta_color = "#16a34a" if is_pv else "#dc2626"
+            symbol = "▲"
         else:
-            diff_color = "#64748b"
+            delta_color = "#64748b"
+            symbol = "•"
 
         diff_str = f"{diff:+.1f}"
-        if abs(last_val) > 0.001:
-            pct_diff = (diff / last_val) * 100
-            diff_badge = f"{diff_str} ({pct_diff:+.0f}%)"
-        else:
-            diff_badge = f"{diff_str}"
+        pct_str = f"({(diff / last_val) * 100:+.0f}%)" if abs(last_val) > 0.001 else ""
 
-        # Text label next to bars
+        # Left header: Device Name
         ax.text(
-            higher_bar + offset_padding,
-            y_pos[i],
-            f"Aktuell: {curr_val:.1f} | Δ {diff_badge}",
-            va="center",
+            max_val * 0.015,
+            y_slots[i] - 0.28,
+            names[i],
+            va="bottom",
             ha="left",
-            fontsize=8.5,
+            fontsize=10.5,
             fontweight="bold",
-            color=diff_color,
+            color="#0f172a",
+            zorder=3,
         )
 
-    # Labels and aesthetics
-    ax.set_yticks(y_pos)
-    ax.set_yticklabels(names, fontsize=10, fontweight="normal", color="#1e293b")
-    ax.invert_yaxis()  # top-down order as defined in list
+        # Right header: Current value & Delta Badge
+        ax.text(
+            max_val * 1.005,
+            y_slots[i] - 0.28,
+            f"{curr_val:.1f} {unit}   {symbol} {diff_str} {pct_str}",
+            va="bottom",
+            ha="right",
+            fontsize=9.5,
+            fontweight="bold",
+            color=delta_color,
+            zorder=3,
+        )
 
-    ax.set_xlabel("Verbrauch (kWh bzw. m³)", fontsize=10, fontweight="bold", color="#334155", labelpad=8)
-    ax.set_title("Energie- & Verbrauchsvergleich", fontsize=13, fontweight="bold", color="#0f172a", pad=14)
+    ax.set_yticks([])  # Remove y axis tick labels since names are in header line
+    ax.invert_yaxis()
+
+    ax.set_xlabel("Verbrauch (kWh bzw. m³)", fontsize=9.5, fontweight="bold", color="#475569", labelpad=10)
+    ax.set_title("Energie- & Verbrauchsbericht", fontsize=13, fontweight="bold", color="#0f172a", pad=16)
 
     # Grid & borders
-    ax.grid(axis="x", linestyle="--", alpha=0.5, color="#cbd5e1")
-    ax.set_axisbelow(True)
+    ax.grid(axis="x", linestyle="--", alpha=0.5, color="#e2e8f0", zorder=1)
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
-    ax.spines["left"].set_color("#cbd5e1")
+    ax.spines["left"].set_visible(False)
     ax.spines["bottom"].set_color("#cbd5e1")
 
     # Legend
-    ax.legend(loc="lower right", frameon=True, facecolor="#ffffff", edgecolor="#e2e8f0", fontsize=9)
-
-    # Ensure annotations fit inside plot area
-    ax.set_xlim(left=0, right=max_val * 1.35)
+    ax.legend(loc="lower right", frameon=True, facecolor="#ffffff", edgecolor="#cbd5e1", fontsize=8.5)
+    ax.set_xlim(left=0, right=max_val * 1.02)
 
     plt.tight_layout()
     plt.savefig(filename, bbox_inches="tight", dpi=150)
