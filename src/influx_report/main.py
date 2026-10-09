@@ -177,6 +177,17 @@ def process_and_log(
     return log_difference(values, timeframes, name)
 
 
+def get_scale_for_date(item: dict[str, Any], target_date: datetime) -> float:
+    """Returns the scale factor for a given item taking into account scale_transitions."""
+    transitions = item.get("scale_transitions", [])
+    for trans in transitions:
+        if "before" in trans:
+            cutoff = datetime.strptime(trans["before"], "%Y-%m-%d").date()
+            if target_date.date() < cutoff:
+                return float(trans["scale"])
+    return float(item.get("scale", 1.0))
+
+
 def process_from_config(
     date: datetime,
     is_month: bool,
@@ -192,7 +203,6 @@ def process_from_config(
     for item in config:
         name = item["name"]
         m_type = item.get("type", "counter")
-        scale = float(item.get("scale", 1.0))
         subtract_target = item.get("subtract")
 
         if "sum_of" in item:
@@ -203,7 +213,9 @@ def process_from_config(
                 v, tf = process_measurement_kwh(date, is_month, sub_meas, influx=influx)
                 total_values[0] += v[0]
                 total_values[1] += v[1]
-            scaled_values = [round(total_values[0] * scale, 1), round(total_values[1] * scale, 1)]
+            scale_ly = get_scale_for_date(item, tf[0][1])
+            scale_now = get_scale_for_date(item, tf[1][1])
+            scaled_values = [round(total_values[0] * scale_ly, 1), round(total_values[1] * scale_now, 1)]
             ms = log_difference(scaled_values, tf, name)
             results_by_name[name] = ms
         elif m_type == "watt":
@@ -213,7 +225,9 @@ def process_from_config(
         else:
             meas_name = item["measurement"]
             v, tf = process_measurement_kwh(date, is_month, meas_name, influx=influx)
-            scaled_values = [round(v[0] * scale, 1), round(v[1] * scale, 1)]
+            scale_ly = get_scale_for_date(item, tf[0][1])
+            scale_now = get_scale_for_date(item, tf[1][1])
+            scaled_values = [round(v[0] * scale_ly, 1), round(v[1] * scale_now, 1)]
             if subtract_target and subtract_target in results_by_name:
                 sub_ms = results_by_name[subtract_target]
                 sub_last = sub_ms.data[0] if hasattr(sub_ms, "data") else sub_ms.get("data", [0, 0])[0]

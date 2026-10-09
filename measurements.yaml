@@ -34,11 +34,14 @@ measurements:
     measurement: "Strom_Leistung_Wasserpumpe"
     type: "watt"
 
-  # go-e "eto" is in deka kWh, value 1 = 0.1 kWh
+  # go-e Charger: Vor dem 05.08.2026 lieferte die alte Box dekawattsekunden / deka-kWh (0.1 kWh), die neue Box liefert Wh (0.001 kWh)
   - name: "E-Auto"
     measurement: "GoEChargerEnergyTotal"
     type: "counter"
-    scale: 0.1
+    scale: 0.001
+    scale_transitions:
+      - before: "2026-08-05"
+        scale: 0.1
 
   # Standard counters
   - name: "Kochfeld"

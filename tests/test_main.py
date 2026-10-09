@@ -164,3 +164,20 @@ def test_find_target_reporting_date():
     target, is_month = main.find_target_reporting_date(datetime(2024, 10, 9))
     assert target == datetime(2024, 10, 6)
     assert is_month is False
+
+
+def test_get_scale_for_date():
+    item = {
+        "name": "E-Auto",
+        "scale": 0.001,
+        "scale_transitions": [
+            {"before": "2026-08-05", "scale": 0.1},
+        ],
+    }
+    # Date before transition
+    assert main.get_scale_for_date(item, datetime(2025, 10, 1)) == 0.1
+    assert main.get_scale_for_date(item, datetime(2026, 8, 4)) == 0.1
+
+    # Date after transition
+    assert main.get_scale_for_date(item, datetime(2026, 8, 5)) == 0.001
+    assert main.get_scale_for_date(item, datetime(2026, 10, 1)) == 0.001
