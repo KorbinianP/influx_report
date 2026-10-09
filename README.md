@@ -59,13 +59,30 @@ measurements:
 
 ## Usage
 
-- **Normal run (OpenHAB / Cron):**
+### Automated / OpenHAB Execution (`exec.sh`)
+
+Für die automatisierte Ausführung durch OpenHAB (z. B. via `executeCommandLine`) oder als Cronjob empfiehlt sich das Shell-Skript [`exec.sh`](file:///home/user/influx_report/exec.sh):
+
+```bash
+./exec.sh
+```
+
+**Vorteile von `exec.sh`:**
+- **Automatisches Environment:** Aktiviert automatisch die lokale `.venv`, falls vorhanden, oder nutzt das System-Python.
+- **Portabel:** Ermittelt das Skriptverzeichnis dynamisch und funktioniert an beliebigen Installationspfaden.
+- **Aufräumen:** Löscht vor dem Lauf alte PNG-Dateien im Verzeichnis.
+- **Logging:** Schreibt Logs bei Vorhandensein von Rechten automatisch nach `/var/log/openhab/executable_script.log`.
+- **Parameterweiterleitung:** Unterstützt ebenfalls CLI-Parameter, z. B. `./exec.sh --date 2024-10-01`.
+
+### Direct Python Execution (`main.py`)
+
+- **Standardlauf:**
   ```bash
   python main.py
   ```
-  Automatically detects whether today is Sunday or the 1st of the month. If executed on any other day (e.g. Wednesday), it falls back to the most recent Sunday or 1st of the month.
+  Erkennt automatisch, ob heute Sonntag oder der 1. des Monats ist. Wird das Skript an einem anderen Wochentag (z. B. Mittwoch) aufgerufen, fällt es automatisch auf den zuletzt zurückliegenden Stichtag (Sonntag oder 1. des Monats) zurück.
 
-- **Manual run for a specific past date:**
+- **Manueller Lauf für ein bestimmtes historisches Datum:**
   ```bash
   python main.py --date 2024-10-01
   ```
