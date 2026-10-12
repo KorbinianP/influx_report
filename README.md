@@ -3,7 +3,7 @@
 Read and plot energy & utility data from InfluxDB to PNG reports (for OpenHAB & Telegram notifications).
 
 Features & Tooling:
-- Python 3.10+ (tested up to 3.12)
+- Python 3.11+ (tested up to 3.15)
 - Fast linting & formatting with **Ruff**
 - Unit tests & coverage with **pytest**
 - Mobile-optimized horizontal bar charts with delta indicators (Vorjahr vs. Aktuell)
