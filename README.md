@@ -19,6 +19,13 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
+### Optional: Moderne Typografie
+Für besonders moderne Schriftarten (z. B. **Inter** oder **Roboto**) auf Linux/OpenHAB-Systemen:
+```bash
+sudo apt install fonts-inter fonts-roboto
+```
+*(Wird keine Systemschriftart gefunden, nutzt Matplotlib automatisch das eingebaute DejaVu Sans – es ist keine Installation zwingend erforderlich.)*
+
 ## Configuration
 
 ### 1. InfluxDB Credentials (`config.ini`)

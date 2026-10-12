@@ -7,6 +7,16 @@ import numpy as np
 
 from influx_report.helpers import MeasurementSet
 
+# Modern sans-serif font stack with graceful fallback to DejaVu Sans
+plt.rcParams["font.family"] = "sans-serif"
+plt.rcParams["font.sans-serif"] = [
+    "Inter",
+    "Roboto",
+    "Helvetica Neue",
+    "Arial",
+    "DejaVu Sans",
+]
+
 
 def format_dates(dates):
     """Formats a tuple of two datetime objects into a string.
