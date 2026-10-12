@@ -68,7 +68,7 @@ measurements:
 
 ### Automated / OpenHAB Execution (`exec.sh`)
 
-For automated execution by OpenHAB (e.g. via `executeCommandLine`) or a cron job, use the shell runner [`exec.sh`](file:///home/user/influx_report/exec.sh):
+For automated execution by OpenHAB (e.g. via `executeCommandLine`) or a cron job, use the shell runner [`exec.sh`](./exec.sh):
 
 ```bash
 ./exec.sh
