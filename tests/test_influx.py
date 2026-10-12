@@ -25,6 +25,7 @@ def mock_influx_client():
 @pytest.fixture
 def influx_instance(mock_influx_client):
     with (
+        patch("os.path.exists", return_value=True),
         patch("configparser.ConfigParser.read", return_value=None),
         patch("configparser.ConfigParser.has_section", return_value=True),
         patch("configparser.ConfigParser.get", side_effect=lambda section, option: "mock_value"),
