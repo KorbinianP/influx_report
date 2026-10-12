@@ -30,7 +30,7 @@ class GetFromInflux:
     def __init__(self, config_file: str = "config.ini"):
         """Parse config.ini and create the influx client"""
         if not os.path.exists(config_file):
-            msg = f"Konfigurationsdatei '{config_file}' nicht gefunden! Bitte erstelle '{config_file}' mit der [InfluxDB]-Sektion (siehe README.md)."
+            msg = f"Configuration file '{config_file}' not found! Please create '{config_file}' with an [InfluxDB] section (see README.md)."
             logger.error(msg)
             raise FileNotFoundError(msg)
 
@@ -43,7 +43,7 @@ class GetFromInflux:
                 token=config.get("InfluxDB", "token"),
                 org=config.get("InfluxDB", "org"),
                 bucket=config.get("InfluxDB", "bucket"),
-                # Verbindung zur InfluxDB herstellen
+                # Connect to InfluxDB
                 client=InfluxDBClient(url=config.get("InfluxDB", "url"), token=config.get("InfluxDB", "token")),
             )
             logger.debug("Fill connect to InfluxDB %s", self.influx.url)

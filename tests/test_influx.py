@@ -87,7 +87,7 @@ def test_get_values_from_influx_exception(influx_instance):
 
 def test_missing_config_ini_file_not_found():
     with patch("os.path.exists", return_value=False):
-        with pytest.raises(FileNotFoundError, match="nicht gefunden"):
+        with pytest.raises(FileNotFoundError, match="not found"):
             GetFromInflux("non_existent_config.ini")
 
 

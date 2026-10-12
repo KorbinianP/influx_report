@@ -343,23 +343,23 @@ def main(today: datetime | None = None) -> None:
 
     target_date, is_month = find_target_reporting_date(today)
     chart_filename = "bar_chart_month.png" if is_month else "bar_chart_week.png"
-    period_label = "Monat" if is_month else "Woche"
+    period_label = "Month" if is_month else "Week"
 
-    logger.info("Verarbeite Bericht für %s zum Stichtag %s", period_label, target_date.strftime("%d.%m.%Y"))
+    logger.info("Processing report for %s as of target date %s", period_label, target_date.strftime("%d.%m.%Y"))
 
     # Reuse single InfluxDB client instance for all queries
     try:
         influx_client = GetFromInflux()
     except FileNotFoundError as exc:
-        logger.error("Kritischer Fehler: %s", exc)
+        logger.error("Critical error: %s", exc)
         raise SystemExit(1) from exc
     except Exception as exc:
-        logger.error("Fehler beim Initialisieren der InfluxDB-Verbindung: %s", exc)
+        logger.error("Error initializing InfluxDB connection: %s", exc)
         raise SystemExit(1) from exc
 
     data = process(date=target_date, is_month=is_month, influx=influx_client)
     create_bar_chart(data, chart_filename)
-    logger.info("Diagramm erfolgreich erstellt: %s", chart_filename)
+    logger.info("Chart generated successfully: %s", chart_filename)
 
 
 if __name__ == "__main__":
@@ -367,7 +367,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--date",
         type=lambda d: datetime.strptime(d, "%Y-%m-%d").replace(hour=23, minute=59, second=59),
-        help="Optionales Referenzdatum im Format YYYY-MM-DD",
+        help="Optional target date in YYYY-MM-DD format",
     )
     args = parser.parse_args()
     main(today=args.date)
