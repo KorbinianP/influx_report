@@ -1,0 +1,183 @@
+"""unit test main.py"""
+
+from datetime import datetime
+from unittest.mock import MagicMock, patch
+
+import pytest
+
+from influx_report import main
+
+# pylint: disable=missing-function-docstring
+
+date1 = datetime(year=2024, month=10, day=1)
+date2 = datetime(year=2024, month=10, day=6)
+
+
+@pytest.mark.parametrize(
+    "date, is_month, measurement_name, name, is_watt",
+    [
+        (date1, True, "measurement1", "Measurement 1", False),
+        (date2, False, "measurement2", "Measurement 2", True),
+    ],
+)
+def test_process_and_log(date, is_month, measurement_name, name, is_watt):
+    with (
+        patch("influx_report.main.process_measurement_watt") as mock_process_watt,
+        patch("influx_report.main.process_measurement_kwh") as mock_process_kwh,
+        patch("influx_report.main.log_difference") as mock_log_difference,
+    ):
+        # Mock return values based on is_watt
+        if is_watt:
+            mock_process_watt.return_value = ((101, 102), (date, date))
+            expected_output = 1
+            mock_log_difference.return_value = expected_output
+        else:
+            mock_process_kwh.return_value = ((102, 101), (date, date))
+            expected_output = -1
+            mock_log_difference.return_value = expected_output
+
+        result = main.process_and_log(date, is_month, measurement_name, name, is_watt)
+
+        assert result == expected_output
+        if is_watt:
+            mock_process_watt.assert_called_once_with(date, is_month, measurement_name)
+        else:
+            mock_process_kwh.assert_called_once_with(date, is_month, measurement_name)
+        mock_log_difference.assert_called_once()
+
+
+@pytest.mark.parametrize(
+    "test_date, verify_date, is_first_of_month",
+    [
+        (datetime(year=2024, month=10, day=1), datetime(year=2024, month=10, day=1), True),
+        (datetime(year=2024, month=10, day=2), datetime(year=2024, month=10, day=1), True),
+        (datetime(year=2024, month=10, day=6), datetime(year=2024, month=10, day=6), False),
+        (datetime(year=2024, month=10, day=7), datetime(year=2024, month=10, day=6), False),
+    ],
+)
+def test_main(test_date, verify_date, is_first_of_month):
+    """test main function with different combinations"""
+    with (
+        patch("influx_report.main.process") as mock_process,
+        patch("influx_report.main.datetime") as mock_datetime,
+        patch("influx_report.main.create_bar_chart") as _mock_create_bar_chart,
+        patch("influx_report.main.GetFromInflux") as mock_get_influx,
+    ):
+        mock_datetime.now.return_value = test_date
+        mock_influx_instance = mock_get_influx.return_value
+        main.main(today=test_date)
+
+        mock_process.assert_called_once_with(date=verify_date, is_month=is_first_of_month, influx=mock_influx_instance)
+
+
+@pytest.mark.parametrize(
+    "date, is_month, measurement_name, expected_usage",
+    [
+        # Add your test cases for process_measurement_kwh here
+        (date1, True, "measurement_kwh_1", 101),
+        (date2, False, "measurement_kwh_2", 103),
+        # Add more cases as needed
+    ],
+)
+def test_process_measurement_kwh(date, is_month, measurement_name, expected_usage):
+    with patch("influx_report.main.GetFromInflux") as mock_influx:
+        mock_influx_instance = mock_influx.return_value
+        mock_influx_instance.get_values_from_influx.return_value = [0, expected_usage]
+
+        result, _ = main.process_measurement_kwh(date, is_month, measurement_name)
+
+        assert result[1] == expected_usage
+
+
+@pytest.mark.parametrize(
+    "date, is_month, measurement_name, expected_usage",
+    [
+        # Add your test cases for process_measurement_watt here
+        (date1, True, "measurement_watt_1", 101),
+        (date2, False, "measurement_watt_2", 102),
+        # Add more cases as needed
+    ],
+)
+def test_process_measurement_watt(date, is_month, measurement_name, expected_usage):
+    with patch("influx_report.main.GetFromInflux") as mock_influx:
+        mock_influx_instance = mock_influx.return_value
+        mock_influx_instance.get_total_kwh_consumed_from_influx.return_value = expected_usage
+
+        result, _ = main.process_measurement_watt(date, is_month, measurement_name)
+
+        assert result[1] == expected_usage
+
+
+@pytest.fixture
+def mock_helpers():
+    with (
+        patch("influx_report.main.is_first_of_month", return_value=False),
+        patch("influx_report.main.is_sunday", return_value=False),
+        patch("influx_report.main.log_difference", return_value={}),
+    ):
+        yield
+
+
+@pytest.fixture
+def mock_influx():
+    with patch("influx_report.main.GetFromInflux") as mock_influx:
+        mock_instance = MagicMock()
+        mock_influx.return_value = mock_instance
+        mock_instance.get_values_from_influx.return_value = (100, 200)
+        mock_instance.get_total_kwh_consumed_from_influx.return_value = 0.1
+        yield mock_instance
+
+
+def test_process_monthly(mock_helpers, mock_influx):
+    date = datetime(2023, 9, 1)
+    is_month = True
+    result = main.process(date, is_month)
+    assert isinstance(result, list)
+    assert len(result) > 0
+
+
+def test_process_weekly(mock_helpers, mock_influx):
+    date = datetime(2023, 9, 3)  # Assume this is a Sunday
+    is_month = False
+    result = main.process(date, is_month)
+    assert isinstance(result, list)
+    assert len(result) > 0
+
+
+def test_find_target_reporting_date():
+    # 1st of month
+    target, is_month = main.find_target_reporting_date(datetime(2024, 10, 1))
+    assert target == datetime(2024, 10, 1)
+    assert is_month is True
+
+    # 2nd of month should fall back to 1st of month
+    target, is_month = main.find_target_reporting_date(datetime(2024, 10, 2))
+    assert target == datetime(2024, 10, 1)
+    assert is_month is True
+
+    # Sunday
+    target, is_month = main.find_target_reporting_date(datetime(2024, 10, 6))
+    assert target == datetime(2024, 10, 6)
+    assert is_month is False
+
+    # Wednesday (midweek) should fall back to previous Sunday (2024-10-06)
+    target, is_month = main.find_target_reporting_date(datetime(2024, 10, 9))
+    assert target == datetime(2024, 10, 6)
+    assert is_month is False
+
+
+def test_get_scale_for_date():
+    item = {
+        "name": "E-Auto",
+        "scale": 0.001,
+        "scale_transitions": [
+            {"before": "2026-08-05", "scale": 0.1},
+        ],
+    }
+    # Date before transition
+    assert main.get_scale_for_date(item, datetime(2025, 10, 1)) == 0.1
+    assert main.get_scale_for_date(item, datetime(2026, 8, 4)) == 0.1
+
+    # Date after transition
+    assert main.get_scale_for_date(item, datetime(2026, 8, 5)) == 0.001
+    assert main.get_scale_for_date(item, datetime(2026, 10, 1)) == 0.001

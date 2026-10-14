@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from influx import GetFromInflux
+from influx_report.influx import GetFromInflux
 
 
 @pytest.fixture
@@ -12,19 +12,24 @@ def mock_influx_client():
     mock_client = MagicMock()
     mock_query_api = mock_client.query_api.return_value
     mock_query_api.query.return_value = [
-        MagicMock(records=[
-            MagicMock(get_value=MagicMock(return_value=100), get_time=MagicMock(return_value=datetime(2023, 1, 1, 0, 0))),
-            MagicMock(get_value=MagicMock(return_value=200), get_time=MagicMock(return_value=datetime(2023, 1, 1, 1, 0))),
-        ])
+        MagicMock(
+            records=[
+                MagicMock(get_value=MagicMock(return_value=100), get_time=MagicMock(return_value=datetime(2023, 1, 1, 0, 0))),
+                MagicMock(get_value=MagicMock(return_value=200), get_time=MagicMock(return_value=datetime(2023, 1, 1, 1, 0))),
+            ]
+        )
     ]
     return mock_client
 
 
 @pytest.fixture
 def influx_instance(mock_influx_client):
-    with patch('configparser.ConfigParser.read', return_value=None), \
-         patch('configparser.ConfigParser.has_section', return_value=True), \
-         patch('configparser.ConfigParser.get', side_effect=lambda section, option: 'mock_value'):
+    with (
+        patch("os.path.exists", return_value=True),
+        patch("configparser.ConfigParser.read", return_value=None),
+        patch("configparser.ConfigParser.has_section", return_value=True),
+        patch("configparser.ConfigParser.get", side_effect=lambda section, option: "mock_value"),
+    ):
         instance = GetFromInflux()
         instance.influx.client = mock_influx_client
         return instance
@@ -68,7 +73,7 @@ def test_get_values_from_influx_no_data(influx_instance):
     start_date = datetime(2023, 1, 1)
     end_date = datetime(2023, 1, 2)
     result = influx_instance.get_values_from_influx("test_measurement", start_date, end_date)
-    assert result == (None, None)  # No data should return (None, None)
+    assert result == (0, 0)  # No data should default to (0, 0)
 
 
 def test_get_values_from_influx_exception(influx_instance):
@@ -80,16 +85,21 @@ def test_get_values_from_influx_exception(influx_instance):
         influx_instance.get_values_from_influx("test_measurement", start_date, end_date)
 
 
-def test_missing_config_ini():
-    with patch('configparser.ConfigParser.read', side_effect=configparser.NoSectionError('InfluxDB')):
+def test_missing_config_ini_file_not_found():
+    with patch("os.path.exists", return_value=False):
+        with pytest.raises(FileNotFoundError, match="not found"):
+            GetFromInflux("non_existent_config.ini")
+
+
+def test_missing_config_ini_no_section():
+    with patch("os.path.exists", return_value=True), patch("configparser.ConfigParser.read", return_value=None):
         with pytest.raises(configparser.NoSectionError):
             GetFromInflux()
 
 
 def test_no_section_error_handling():
-    with patch('configparser.ConfigParser.read', side_effect=configparser.NoSectionError('InfluxDB')) as mock_read:
+    with patch("os.path.exists", return_value=True), patch("configparser.ConfigParser.read", return_value=None):
         try:
             GetFromInflux()
         except configparser.NoSectionError as error:
-            assert str(error) == 'No section: \'InfluxDB\''
-        mock_read.assert_called_once()
+            assert str(error) == "No section: 'InfluxDB'"

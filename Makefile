@@ -1,13 +1,14 @@
 .PHONY: lint
 lint:
-	pylint $(shell git ls-files '*.py')
+	ruff check .
+
+.PHONY: format
+format:
+	ruff format .
 
 .PHONY: test
 test:
-	@coverage run -m pytest $(shell git ls-files 'test_*.py') && \
-	coverage html
+	@coverage run -m pytest && coverage html
 
-.PHONY: sort
-sort:
-	isort -l 150 $(shell git ls-files 'test_*.py')
-	yapf -i $(shell git ls-files 'test_*.py')
+.PHONY: check
+check: lint test

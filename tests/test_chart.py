@@ -1,9 +1,10 @@
 """test create_png.py"""
+
 import datetime
 from unittest.mock import MagicMock
 
-from create_png import create_bar_chart, format_dates
-from helpers import MeasurementSet
+from influx_report.chart import create_bar_chart, format_dates
+from influx_report.helpers import MeasurementSet
 
 # pylint: disable=missing-function-docstring
 
@@ -24,9 +25,9 @@ def test_create_bar_chart(monkeypatch):
     ]
 
     # Use monkeypatch to avoid creating an actual file
-    monkeypatch.setattr('matplotlib.pyplot.savefig', lambda *args, **kwargs: None)
+    monkeypatch.setattr("matplotlib.pyplot.savefig", lambda *args, **kwargs: None)
 
-    create_bar_chart([mock_measurement_set, mock_measurement_set], filename='test_chart.png')
+    create_bar_chart([mock_measurement_set, mock_measurement_set], filename="test_chart.png")
 
     # Check if the function saves the file correctly (the actual save is mocked)
     assert True  # Just to ensure the test runs without errors

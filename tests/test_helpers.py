@@ -4,58 +4,66 @@ Run the tests with coverage and generate HTML report
 coverage run -m pytest test_main.py
 coverage html
 """
-import logging
-from datetime import datetime, timedelta, timezone
 
-from helpers import get_latest_value, get_same_calendar_week_day_one_year_ago, is_first_of_month, is_sunday, last_sunday, log_difference
+import logging
+from datetime import UTC, datetime, timedelta
+
+from influx_report.helpers import (
+    get_latest_value,
+    get_same_calendar_week_day_one_year_ago,
+    is_first_of_month,
+    is_sunday,
+    last_sunday,
+    log_difference,
+)
 
 
 def test_get_latest_value_empty_lists():
-    """Testfall 1: timestamps und values sind beide leer"""
+    """Test case 1: timestamps and values are both empty"""
     timestamps = []
     values = []
     assert get_latest_value(timestamps, values) == (None, None)
 
 
 def test_get_latest_value_empty_timestamps():
-    """Testfall 2: timestamps ist leer, values hat Werte"""
+    """Test case 2: timestamps is empty, values has elements"""
     timestamps = []
     values = [10, 20, 30]
     assert get_latest_value(timestamps, values) == (None, None)
 
 
 def test_get_latest_value_empty_values():
-    """Testfall 3: timestamps hat Werte, values ist leer"""
-    timestamps = [datetime(2022, 1, 1, tzinfo=timezone.utc), datetime(2023, 1, 1, tzinfo=timezone.utc)]
+    """Test case 3: timestamps has elements, values is empty"""
+    timestamps = [datetime(2022, 1, 1, tzinfo=UTC), datetime(2023, 1, 1, tzinfo=UTC)]
     values = []
     assert get_latest_value(timestamps, values) == (None, None)
 
 
 def test_get_latest_value_same_length_ok():
-    """Testfall 4.1: timestamps und values haben gleiche Länge"""
+    """Test case 4.1: timestamps and values have same length"""
     timestamps = [
-        datetime(2021, 1, 1, tzinfo=timezone.utc),
-        datetime(2022, 1, 1, tzinfo=timezone.utc),
-        datetime(2023, 1, 1, tzinfo=timezone.utc),
+        datetime(2021, 1, 1, tzinfo=UTC),
+        datetime(2022, 1, 1, tzinfo=UTC),
+        datetime(2023, 1, 1, tzinfo=UTC),
     ]
     values = [0, 10, 20]
     assert get_latest_value(timestamps, values) == (timestamps[2], values[2])
 
 
 def test_get_latest_value_same_length_other_order_ok():
-    """Testfall 4.2: timestamps und values haben gleiche Länge, andere Reihenfolge"""
+    """Test case 4.2: timestamps and values have same length, different order"""
     timestamps = [
-        datetime(2023, 1, 1, tzinfo=timezone.utc),
-        datetime(2022, 1, 1, tzinfo=timezone.utc),
-        datetime(2021, 1, 1, tzinfo=timezone.utc),
+        datetime(2023, 1, 1, tzinfo=UTC),
+        datetime(2022, 1, 1, tzinfo=UTC),
+        datetime(2021, 1, 1, tzinfo=UTC),
     ]
     values = [0, 10, 20]
     assert get_latest_value(timestamps, values) == (timestamps[0], values[0])
 
 
 def test_get_latest_value_more_timestamps():
-    """Testfall 5: timestamps hat mehr Werte als values"""
-    timestamps = [datetime(2022, 1, 1, tzinfo=timezone.utc), datetime(2023, 1, 1, tzinfo=timezone.utc)]
+    """Test case 5: timestamps has more elements than values"""
+    timestamps = [datetime(2022, 1, 1, tzinfo=UTC), datetime(2023, 1, 1, tzinfo=UTC)]
     values = [10]
     assert get_latest_value(timestamps, values) == (None, None)
 

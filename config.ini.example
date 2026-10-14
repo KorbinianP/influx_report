@@ -1,0 +1,5 @@
+[InfluxDB]
+url=http://urltoinflux:8086
+token=my_secret_token
+org=organisation_name
+bucket=bucket_name
