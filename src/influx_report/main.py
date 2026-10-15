@@ -237,6 +237,17 @@ def process_from_config(
             ms = log_difference(scaled_values, tf, name)
             results_by_name[name] = ms
 
+    # Calculate and log heat pump efficiency (COP / Arbeitszahl) if heat output and power input are present
+    if "Wärmemenge Gesamt" in results_by_name and "Heizung absolut" in results_by_name:
+        q_ms = results_by_name["Wärmemenge Gesamt"]
+        w_ms = results_by_name["Heizung absolut"]
+        q_val = q_ms.data[1] if hasattr(q_ms, "data") else q_ms.get("data", [0, 0])[1]
+        w_val = w_ms.data[1] if hasattr(w_ms, "data") else w_ms.get("data", [0, 0])[1]
+        if w_val > 0:
+            cop = round(q_val / w_val, 2)
+            period_name = "Monatsarbeitszahl (MAZ)" if is_month else "Wochenarbeitszahl"
+            logger.info("%s: %.2f (Wärme: %.1f kWh, Strom: %.1f kWh)", period_name, cop, q_val, w_val)
+
     return list(results_by_name.values())
 
 
@@ -301,6 +312,15 @@ def process_builtin(date: datetime, is_month: bool, influx: GetFromInflux | None
     einspeisung[0] = round(einspeisung[0] / 1000, 1)
     einspeisung[1] = round(einspeisung[1] / 1000, 1)
     processed_data.append(log_difference(einspeisung, timeframes, "PV Einspeisung"))
+
+    # Heat pump thermal energy output
+    waerme_ges, _ = process_measurement_kwh(date, is_month, "Heizung_Waermemenge_Gesamt", influx=influx)
+    processed_data.append(log_difference(waerme_ges, timeframes, "Wärmemenge Gesamt"))
+
+    if shelly_hei_total[1] > 0 and waerme_ges[1] > 0:
+        cop = round(waerme_ges[1] / shelly_hei_total[1], 2)
+        period_name = "Monatsarbeitszahl (MAZ)" if is_month else "Wochenarbeitszahl"
+        logger.info("%s: %.2f (Wärme: %.1f kWh, Strom: %.1f kWh)", period_name, cop, waerme_ges[1], shelly_hei_total[1])
 
     return processed_data
 

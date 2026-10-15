@@ -98,8 +98,22 @@ measurements:
     type: "counter"
     scale: 0.001
 
+  # Heat pump thermal energy output (in kWh)
+  - name: "Wärmemenge Heizen"
+    measurement: "Heizung_Waermemenge_Heizen_Gesamt"
+    type: "counter"
+
+  - name: "Wärmemenge Warmwasser"
+    measurement: "Heizung_Waermemenge_Warmwasser_Gesamt"
+    type: "counter"
+
+  - name: "Wärmemenge Gesamt"
+    measurement: "Heizung_Waermemenge_Gesamt"
+    type: "counter"
+
   # Solar / PV feed-in (in Wh -> scale 0.001)
   - name: "PV Einspeisung"
     measurement: "SmartMeter_HeizungNeu_Einspeisung"
     type: "counter"
     scale: 0.001
+

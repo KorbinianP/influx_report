@@ -181,3 +181,37 @@ def test_get_scale_for_date():
     # Date after transition
     assert main.get_scale_for_date(item, datetime(2026, 8, 5)) == 0.001
     assert main.get_scale_for_date(item, datetime(2026, 10, 1)) == 0.001
+
+
+def test_process_from_config_efficiency_logging(caplog):
+    config = [
+        {
+            "name": "Heizung absolut",
+            "measurement": "Test_Shelly_3EM_Heizung_Total",
+            "type": "counter",
+            "scale": 1.0,
+        },
+        {
+            "name": "Wärmemenge Gesamt",
+            "measurement": "Heizung_Waermemenge_Gesamt",
+            "type": "counter",
+            "scale": 1.0,
+        },
+    ]
+    with (
+        patch("influx_report.main.process_measurement_kwh") as mock_process_kwh,
+        patch("influx_report.main.log_difference") as mock_log_diff,
+    ):
+        mock_process_kwh.side_effect = [
+            ([100.0, 200.0], ((datetime(2023, 9, 1), datetime(2023, 10, 1)), (datetime(2024, 9, 1), datetime(2024, 10, 1)))),
+            ([400.0, 800.0], ((datetime(2023, 9, 1), datetime(2023, 10, 1)), (datetime(2024, 9, 1), datetime(2024, 10, 1)))),
+        ]
+        ms1 = MagicMock(data=[100.0, 200.0])
+        ms2 = MagicMock(data=[400.0, 800.0])
+        mock_log_diff.side_effect = [ms1, ms2]
+
+        with caplog.at_level("INFO"):
+            main.process_from_config(datetime(2024, 10, 1), True, config, influx=MagicMock())
+
+        assert "Monatsarbeitszahl (MAZ): 4.00" in caplog.text
+
