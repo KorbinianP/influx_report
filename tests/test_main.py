@@ -214,4 +214,3 @@ def test_process_from_config_efficiency_logging(caplog):
             main.process_from_config(datetime(2024, 10, 1), True, config, influx=MagicMock())
 
         assert "Monatsarbeitszahl (MAZ): 4.00" in caplog.text
-
