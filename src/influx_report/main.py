@@ -16,12 +16,16 @@ from dateutil.relativedelta import relativedelta
 from influx_report.chart import create_bar_chart
 from influx_report.helpers import (
     MeasurementSet,
-    get_same_calendar_week_day_one_year_ago,
     is_first_of_month,
     is_sunday,
     log_difference,
 )
 from influx_report.influx import GetFromInflux
+from influx_report.summary import (
+    generate_energy_summary,
+    push_summary_to_openhab,
+    save_summary_to_file,
+)
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 logger = logging.getLogger("influx_report.main")
@@ -57,18 +61,18 @@ def process_measurement_kwh(
         influx (GetFromInflux, optional): Existing Influx client instance to reuse.
 
     Returns:
-        list: [last_year_usage, this_year_usage]
-        tuple: ((last_year_start, last_year_end), (this_year_start, this_year_end))
+        list: [past_usage, current_usage]
+        tuple: ((past_start, past_end), (current_start, current_end))
     """
     if influx is None:
         influx = GetFromInflux()
 
     if is_month:
         delta = relativedelta(months=1)
-        one_year_ago = date - relativedelta(years=1)
+        past_timeframe = date - relativedelta(years=1)
     else:
         delta = relativedelta(weeks=1)
-        one_year_ago = get_same_calendar_week_day_one_year_ago(date)
+        past_timeframe = date - relativedelta(days=7)
 
     # Get today's usage data for the specified period
     values_today = influx.get_values_from_influx(
@@ -79,20 +83,20 @@ def process_measurement_kwh(
 
     before = values_today[0] if values_today[0] is not None else 0.0
     now = values_today[1] if values_today[1] is not None else 0.0
-    this_year_usage = now - before
+    current_usage = now - before
 
-    # Calculate last year's usage for the same period
-    values_last_year = influx.get_values_from_influx(
+    # Calculate past usage for the comparison period (Vorwoche or Vorjahr)
+    values_past = influx.get_values_from_influx(
         measurement_name=measurement_name,
-        start_date=one_year_ago - delta,
-        end_date=one_year_ago,
+        start_date=past_timeframe - delta,
+        end_date=past_timeframe,
     )
 
-    before_ly = values_last_year[0] if values_last_year[0] is not None else 0.0
-    now_ly = values_last_year[1] if values_last_year[1] is not None else 0.0
-    last_year_usage = now_ly - before_ly
+    before_past = values_past[0] if values_past[0] is not None else 0.0
+    now_past = values_past[1] if values_past[1] is not None else 0.0
+    past_usage = now_past - before_past
 
-    return [last_year_usage, this_year_usage], ((one_year_ago - delta, one_year_ago), (date - delta, date))
+    return [past_usage, current_usage], ((past_timeframe - delta, past_timeframe), (date - delta, date))
 
 
 def process_measurement_watt(
@@ -271,6 +275,7 @@ def process_builtin(date: datetime, is_month: bool, influx: GetFromInflux | None
 
     just_log_measurements = [
         ("Zaehler_Ceran", "Kochfeld"),
+        ("Zaehler_Backofen", "Backofen"),
         ("Zaehler_Mikrowelle", "Mikrowelle"),
         ("Zaehler_Netzwerkschrank", "Netzwerkschrank"),
         ("Zaehler_Spuelmaschine", "Spülmaschine"),
@@ -378,8 +383,14 @@ def main(today: datetime | None = None) -> None:
         raise SystemExit(1) from exc
 
     data = process(date=target_date, is_month=is_month, influx=influx_client)
-    create_bar_chart(data, chart_filename)
+    create_bar_chart(data, chart_filename, is_month=is_month)
     logger.info("Chart generated successfully: %s", chart_filename)
+
+    summary_filename = "report_summary_month.txt" if is_month else "report_summary_week.txt"
+    summary_text = generate_energy_summary(data, is_month=is_month)
+    save_summary_to_file(summary_text, filename=summary_filename)
+    push_summary_to_openhab(summary_text)
+    logger.info("\n--- Zusammenfassung ---\n%s\n-----------------------", summary_text)
 
 
 if __name__ == "__main__":

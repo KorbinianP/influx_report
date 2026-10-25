@@ -27,8 +27,8 @@ fi
 
 echo "Python executable: $(command -v "${PYTHON_BIN}")"
 
-# Clean up older PNGs in script directory
-rm -f "${SCRIPT_DIR}"/*.png 2>/dev/null || true
+# Clean up older PNGs and summary files in script directory
+rm -f "${SCRIPT_DIR}"/*.png "${SCRIPT_DIR}"/report_summary_*.txt 2>/dev/null || true
 
 # Run report generator, passing any CLI arguments through
 echo "Running influx_report..."

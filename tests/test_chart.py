@@ -27,7 +27,9 @@ def test_create_bar_chart(monkeypatch):
     # Use monkeypatch to avoid creating an actual file
     monkeypatch.setattr("matplotlib.pyplot.savefig", lambda *args, **kwargs: None)
 
-    create_bar_chart([mock_measurement_set, mock_measurement_set], filename="test_chart.png")
+    # Test both weekly (is_month=False) and monthly (is_month=True)
+    create_bar_chart([mock_measurement_set, mock_measurement_set], filename="test_chart_week.png", is_month=False)
+    create_bar_chart([mock_measurement_set, mock_measurement_set], filename="test_chart_month.png", is_month=True)
 
     # Check if the function saves the file correctly (the actual save is mocked)
-    assert True  # Just to ensure the test runs without errors
+    assert True

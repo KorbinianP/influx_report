@@ -48,6 +48,10 @@ measurements:
     measurement: "Zaehler_Ceran"
     type: "counter"
 
+  - name: "Backofen"
+    measurement: "Zaehler_Backofen"
+    type: "counter"
+
   - name: "Mikrowelle"
     measurement: "Zaehler_Mikrowelle"
     type: "counter"

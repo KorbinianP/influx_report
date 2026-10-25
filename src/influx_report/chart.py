@@ -32,19 +32,24 @@ def format_dates(dates):
     return f"{first_date} - {last_date}"
 
 
-def create_bar_chart(measurement_sets: Sequence[MeasurementSet], filename: str = "bar_chart.png"):
+def create_bar_chart(
+    measurement_sets: Sequence[MeasurementSet],
+    filename: str = "bar_chart.png",
+    is_month: bool = False,
+):
     """Creates a modern, compact Bullet-Graph bar chart from an array of MeasurementSet and saves it as a PNG.
 
     Optimized for smartphone viewing (Telegram):
-    - Compact single-row Bullet-Graph layout: Current value bar + Vorjahr ghost bar & reference tick
+    - Compact single-row Bullet-Graph layout: Current value bar + Vorwoche/Vorjahr ghost bar & reference tick
     - Reduces vertical chart height by ~40% while preserving full comparison detail
-    - Device name and current value/Vorjahr/delta badge placed directly ABOVE the bar
+    - Device name and current value/comparison/delta badge placed directly ABOVE the bar
     - Color-coded delta badges (green for reduction/savings, red for increase)
     - High DPI and modern typography
 
     Args:
         measurement_sets (list): A list of MeasurementSet objects.
         filename (str): The filename to save the bar chart as a PNG.
+        is_month (bool): True if monthly report (compares against Vorjahr), False if weekly (Vorwoche).
     """
     if not measurement_sets:
         return
@@ -74,6 +79,9 @@ def create_bar_chart(measurement_sets: Sequence[MeasurementSet], filename: str =
 
     label_last = format_dates(measurement_sets[0].dates[0])
     label_this = format_dates(measurement_sets[0].dates[1])
+    ref_label_prefix = "Vorjahr" if is_month else "Vorwoche"
+    badge_prefix = "VJ" if is_month else "VW"
+    period_title = "Monat" if is_month else "Woche"
 
     max_val = max(max(values_last, default=0), max(values_this, default=0), 1)
 
@@ -89,12 +97,12 @@ def create_bar_chart(measurement_sets: Sequence[MeasurementSet], filename: str =
             linewidth=0.8,
         )
 
-    # Draw Vorjahr ghost bar (wider, semi-transparent background)
+    # Draw Vorjahr/Vorwoche ghost bar (wider, semi-transparent background)
     ax.barh(
         y_slots + 0.04,
         values_last,
         height=0.34,
-        label=f"Vorjahr ({label_last})",
+        label=f"{ref_label_prefix} ({label_last})",
         color=color_last,
         alpha=0.45,
         edgecolor="none",
@@ -113,7 +121,7 @@ def create_bar_chart(measurement_sets: Sequence[MeasurementSet], filename: str =
         zorder=2,
     )
 
-    # Draw Vorjahr reference marker tick
+    # Draw Vorjahr/Vorwoche reference marker tick
     for i in range(num_items):
         ax.plot(
             [values_last[i], values_last[i]],
@@ -157,11 +165,11 @@ def create_bar_chart(measurement_sets: Sequence[MeasurementSet], filename: str =
             zorder=3,
         )
 
-        # Right header: Current value, previous year in brackets, and Delta Badge
+        # Right header: Current value, previous period in brackets, and Delta Badge
         ax.text(
             max_val * 1.005,
             y_slots[i] - 0.18,
-            f"{curr_val:.1f} {unit} (VJ: {last_val:.1f})   {symbol} {diff_str} {pct_str}",
+            f"{curr_val:.1f} {unit} ({badge_prefix}: {last_val:.1f})   {symbol} {diff_str} {pct_str}",
             va="bottom",
             ha="right",
             fontsize=9.0,
@@ -174,7 +182,7 @@ def create_bar_chart(measurement_sets: Sequence[MeasurementSet], filename: str =
     ax.invert_yaxis()
 
     ax.set_xlabel("Verbrauch (kWh bzw. m³)", fontsize=9.5, fontweight="bold", color="#475569", labelpad=8)
-    ax.set_title("Energie- & Verbrauchsbericht", fontsize=12.5, fontweight="bold", color="#0f172a", pad=14)
+    ax.set_title(f"Energie- & Verbrauchsbericht ({period_title})", fontsize=12.5, fontweight="bold", color="#0f172a", pad=14)
 
     # Grid & borders
     ax.grid(axis="x", linestyle="--", alpha=0.5, color="#e2e8f0", zorder=1)

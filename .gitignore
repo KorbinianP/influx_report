@@ -2,5 +2,6 @@
 /.venv
 **/__pycache__/**
 /*.png
+/report_summary_*.txt
 .coverage
 htmlcov
