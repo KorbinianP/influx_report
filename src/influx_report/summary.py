@@ -159,7 +159,7 @@ def generate_energy_summary(
         curr = float(ms.data[1])
         past = float(ms.data[0])
         diff = curr - past
-        unit = "m³" if "wasser" in ms.name.lower() else "kWh"
+        unit = "m³" if "m³" in ms.name else "kWh"
 
         # Percentage change
         pct = (diff / past * 100) if past > 0.05 else (100.0 if curr > 0.5 else 0.0)

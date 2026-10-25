@@ -136,7 +136,7 @@ def create_bar_chart(
         diff = differences[i]
         curr_val = values_this[i]
         last_val = values_last[i]
-        unit = "m³" if "wasser" in names[i].lower() else "kWh"
+        unit = "m³" if "m³" in names[i] else "kWh"
 
         is_pv = "einspeisung" in names[i].lower()
         if diff < 0:
