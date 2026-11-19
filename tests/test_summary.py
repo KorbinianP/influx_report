@@ -5,7 +5,11 @@ from unittest.mock import MagicMock, patch
 
 from influx_report.helpers import MeasurementSet
 from influx_report.summary import (
+    DEFAULT_TARIFF_FEEDIN,
+    DEFAULT_TARIFF_HEATING,
+    DEFAULT_TARIFF_HOUSEHOLD,
     generate_energy_summary,
+    load_tariffs,
     push_summary_to_openhab,
     save_summary_to_file,
 )
@@ -83,3 +87,39 @@ def test_push_summary_to_openhab_failure():
     with patch("urllib.request.urlopen", side_effect=Exception("Connection refused")):
         res = push_summary_to_openhab("Sample summary", openhab_url="http://openhab.local:8080")
         assert res is False
+
+
+def test_load_tariffs_defaults():
+    tariffs = load_tariffs(config_file="non_existent.ini", env_vars={})
+    assert tariffs["household"] == DEFAULT_TARIFF_HOUSEHOLD
+    assert tariffs["heating"] == DEFAULT_TARIFF_HEATING
+    assert tariffs["feedin"] == DEFAULT_TARIFF_FEEDIN
+
+
+def test_load_tariffs_from_env():
+    env = {
+        "TARIFF_GRID_HOUSEHOLD": "0.35",
+        "TARIFF_GRID_HEATING": "0.20",
+        "TARIFF_FEEDIN": "0.09",
+    }
+    tariffs = load_tariffs(config_file="non_existent.ini", env_vars=env)
+    assert tariffs["household"] == 0.35
+    assert tariffs["heating"] == 0.20
+    assert tariffs["feedin"] == 0.09
+
+
+def test_generate_energy_summary_with_tariffs():
+    data = _create_sample_measurements()
+    custom_tariffs = {
+        "household": 0.3108,
+        "heating": 0.2287,
+        "feedin": 0.08,
+    }
+    summary = generate_energy_summary(data, is_month=False, tariffs=custom_tariffs)
+
+    # Household: 118.9 kWh * 0.3108 = 36.95 €
+    assert "36.95 €" in summary
+    # Heating: 51.3 kWh * 0.2287 = 11.73 €
+    assert "11.73 €" in summary
+    # PV feed-in: 100.9 kWh * 0.08 = 8.07 €
+    assert "+8.07 €" in summary

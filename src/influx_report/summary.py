@@ -7,6 +7,7 @@ and highlights extreme deviations.
 
 from __future__ import annotations
 
+import configparser
 import logging
 import urllib.error
 import urllib.request
@@ -16,6 +17,11 @@ from pathlib import Path
 from influx_report.helpers import MeasurementSet
 
 logger = logging.getLogger("influx_report.summary")
+
+# Default electricity tariffs in EUR/kWh
+DEFAULT_TARIFF_HOUSEHOLD = 0.3108  # 31.08 ct/kWh
+DEFAULT_TARIFF_HEATING = 0.2287  # 22.87 ct/kWh
+DEFAULT_TARIFF_FEEDIN = 0.08  # 8.00 ct/kWh
 
 # Known individual household devices measured in kWh (excluded: heating, water in m³, solar)
 KNOWN_HOUSEHOLD_DEVICES = [
@@ -62,14 +68,72 @@ def _load_env_file(env_path: Path | None = None) -> dict[str, str]:
     return env_vars
 
 
+def load_tariffs(
+    config_file: str | Path = "config.ini",
+    env_vars: dict[str, str] | None = None,
+) -> dict[str, float]:
+    """Loads electricity tariffs from config.ini, env vars, or defaults.
+
+    Returns dict with keys: 'household', 'heating', 'feedin' (values in EUR/kWh).
+    """
+    tariffs = {
+        "household": DEFAULT_TARIFF_HOUSEHOLD,
+        "heating": DEFAULT_TARIFF_HEATING,
+        "feedin": DEFAULT_TARIFF_FEEDIN,
+    }
+
+    # 1. Check config.ini
+    config_path = Path(config_file)
+    if not config_path.is_file() and (Path.cwd() / config_file).is_file():
+        config_path = Path.cwd() / config_file
+
+    if config_path.is_file():
+        try:
+            cp = configparser.ConfigParser()
+            cp.read(config_path)
+            if cp.has_section("Tariffs"):
+                sec = cp["Tariffs"]
+                for key_alias, target in [
+                    ("grid_household", "household"),
+                    ("household", "household"),
+                    ("grid_heating", "heating"),
+                    ("heating", "heating"),
+                    ("feedin", "feedin"),
+                ]:
+                    if key_alias in sec:
+                        tariffs[target] = float(sec[key_alias])
+        except Exception as exc:
+            logger.debug("Could not parse tariffs from %s: %s", config_path, exc)
+
+    # 2. Check environment variables
+    env = env_vars if env_vars is not None else _load_env_file()
+    for env_key, target in [
+        ("TARIFF_GRID_HOUSEHOLD", "household"),
+        ("STROM_PREIS_HAUSHALT", "household"),
+        ("TARIFF_GRID_HEATING", "heating"),
+        ("STROM_PREIS_HEIZUNG", "heating"),
+        ("TARIFF_FEEDIN", "feedin"),
+        ("STROM_PREIS_EINSPEISUNG", "feedin"),
+    ]:
+        if env_key in env:
+            try:
+                tariffs[target] = float(env[env_key])
+            except ValueError:
+                pass
+
+    return tariffs
+
+
 def generate_energy_summary(
     measurement_sets: Sequence[MeasurementSet],
     is_month: bool = False,
+    tariffs: dict[str, float] | None = None,
 ) -> str:
     """Generates an intelligent, human-readable German text summary of energy consumption.
 
     Features:
     - E-Auto vs. Household correlation (quantifies E-Auto's impact on household delta)
+    - Electricity costs for household and heating based on configured tariffs
     - Rest-Haushalt (base load / unmeasured devices) = Household total - known devices
     - Extreme anomalies (>50% increase or large kWh shifts)
     - Heat pump efficiency (Arbeitszahl) and PV solar feed-in
@@ -77,6 +141,13 @@ def generate_energy_summary(
     """
     if not measurement_sets:
         return "Keine Messdaten für den Bericht verfügbar."
+
+    if tariffs is None:
+        tariffs = load_tariffs()
+
+    t_hh = tariffs.get("household", DEFAULT_TARIFF_HOUSEHOLD)
+    t_heat = tariffs.get("heating", DEFAULT_TARIFF_HEATING)
+    t_feedin = tariffs.get("feedin", DEFAULT_TARIFF_FEEDIN)
 
     data_map: dict[str, MeasurementSet] = {ms.name: ms for ms in measurement_sets}
 
@@ -100,7 +171,9 @@ def generate_energy_summary(
         h_curr = float(haushalt_ms.data[1])
         h_diff = h_curr - h_past
         h_pct = (h_diff / h_past * 100) if h_past > 0.001 else 0.0
-        lines.append(f"• Gesamt: *{h_curr:.1f} kWh* ({ref_short}: {h_past:.1f} kWh, *{h_diff:+.1f} kWh / {h_pct:+.0f}%*)")
+        h_cost = h_curr * t_hh
+        cost_str = f" (*{h_cost:.2f} €*)" if t_hh > 0 else ""
+        lines.append(f"• Gesamt: *{h_curr:.1f} kWh*{cost_str} ({ref_short}: {h_past:.1f} kWh, *{h_diff:+.1f} kWh / {h_pct:+.0f}%*)")
 
         # Correlate E-Auto
         if e_auto_ms:
@@ -180,14 +253,21 @@ def generate_energy_summary(
     # --- 3. Heat Pump Efficiency & Solar PV ---
     hp_pv_lines: list[str] = []
 
-    # Heat pump COP
+    # Heat pump COP and heating electricity cost
     if "Wärmemenge Gesamt" in data_map and "Heizung absolut" in data_map:
         q_val = float(data_map["Wärmemenge Gesamt"].data[1])
         w_val = float(data_map["Heizung absolut"].data[1])
         if w_val > 0.1:
             cop = round(q_val / w_val, 2)
             az_name = "Monatsarbeitszahl (MAZ)" if is_month else "Wochenarbeitszahl (WAZ)"
-            hp_pv_lines.append(f"• 🌡️ {az_name}: *{cop:.2f}* (Wärme: {q_val:.1f} kWh / Strom: {w_val:.1f} kWh)")
+            heat_cost = w_val * t_heat
+            cost_str = f" ~ *{heat_cost:.2f} €*" if t_heat > 0 else ""
+            hp_pv_lines.append(f"• 🌡️ {az_name}: *{cop:.2f}* (Wärme: {q_val:.1f} kWh / Strom: {w_val:.1f} kWh{cost_str})")
+    elif "Heizung absolut" in data_map:
+        w_val = float(data_map["Heizung absolut"].data[1])
+        heat_cost = w_val * t_heat
+        cost_str = f" (*{heat_cost:.2f} €*)" if t_heat > 0 else ""
+        hp_pv_lines.append(f"• ⚡ Heizstrom: *{w_val:.1f} kWh*{cost_str}")
 
     # PV export
     if "PV Einspeisung" in data_map:
@@ -196,7 +276,9 @@ def generate_energy_summary(
         pv_curr = float(pv_ms.data[1])
         pv_diff = pv_curr - pv_past
         pv_pct = f" ({pv_diff / pv_past * 100:+.0f}%)" if pv_past > 0.001 else ""
-        hp_pv_lines.append(f"• ☀️ PV Einspeisung: *{pv_curr:.1f} kWh* ({ref_short}: {pv_past:.1f} kWh, *{pv_diff:+.1f} kWh*{pv_pct})")
+        pv_earn = pv_curr * t_feedin
+        earn_str = f" (*+{pv_earn:.2f} €*)" if t_feedin > 0 and pv_curr > 0 else ""
+        hp_pv_lines.append(f"• ☀️ PV Einspeisung: *{pv_curr:.1f} kWh*{earn_str} ({ref_short}: {pv_past:.1f} kWh, *{pv_diff:+.1f} kWh*{pv_pct})")
 
     if hp_pv_lines:
         lines.append("🌡️ *Wärmepumpe & PV*:")
