@@ -34,6 +34,10 @@ measurements:
     measurement: "Strom_Leistung_Wasserpumpe"
     type: "watt"
 
+  - name: "Lüftung"
+    measurement: "Strom_Leistung_Lueftung"
+    type: "watt"
+
   # go-e Charger: Prior to 2026-08-05, old hardware reported dekawatt-seconds / deka-kWh (scale 0.1), newer hardware reports Wh (scale 0.001)
   - name: "E-Auto"
     measurement: "GoEChargerEnergyTotal"

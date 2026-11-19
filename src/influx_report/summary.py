@@ -26,6 +26,7 @@ DEFAULT_TARIFF_FEEDIN = 0.08  # 8.00 ct/kWh
 # Known individual household devices measured in kWh (excluded: heating, water in m³, solar)
 KNOWN_HOUSEHOLD_DEVICES = [
     "E-Auto",
+    "Lüftung",
     "Kühlschrank",
     "Waschmaschine",
     "Trockner",

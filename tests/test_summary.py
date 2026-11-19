@@ -28,6 +28,7 @@ def _create_sample_measurements():
         MeasurementSet("TV EG", [7.5, 6.4], (d_past, d_curr)),
         MeasurementSet("TV UG", [0.3, 0.0], (d_past, d_curr)),
         MeasurementSet("Wasserpumpe", [2.1, 2.0], (d_past, d_curr)),
+        MeasurementSet("Lüftung", [11.3, 11.0], (d_past, d_curr)),
         MeasurementSet("Kochfeld", [3.4, 3.7], (d_past, d_curr)),
         MeasurementSet("Backofen", [0.0, 1.7], (d_past, d_curr)),
         MeasurementSet("Mikrowelle", [0.0, 0.2], (d_past, d_curr)),
